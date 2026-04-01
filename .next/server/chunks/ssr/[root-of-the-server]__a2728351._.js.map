@@ -1,0 +1,7 @@
+{
+  "version": 3,
+  "sources": [],
+  "sections": [
+    {"offset": {"line": 3, "column": 0}, "map": {"version":3,"sources":[],"names":[],"mappings":"","debugId":null}},
+    {"offset": {"line": 11, "column": 0}, "map": {"version":3,"sources":["file:///C:/Users/Wesley%20Ahlfeld/dev-work/slowpitch-softball-team-manager/src/app/page.tsx"],"sourcesContent":["export default function Home() {\n  return (\n    <div\n      style={{\n        display: \"flex\",\n        minHeight: \"100vh\",\n        alignItems: \"center\",\n        justifyContent: \"center\",\n        flexDirection: \"column\",\n        gap: \"12px\",\n      }}\n    >\n      <div className=\"eyebrow\">⚡ Slowpitch Team Manager</div>\n      <h1\n        style={{\n          fontFamily: \"var(--font-display)\",\n          fontSize: \"4rem\",\n          fontWeight: 900,\n          color: \"var(--color-text-brand)\",\n          margin: 0,\n        }}\n      >\n        IT WORKS\n      </h1>\n      <p style={{ color: \"var(--color-text-muted)\", fontFamily: \"var(--font-body)\" }}>\n        Ready to build.\n      </p>\n    </div>\n  );\n}\n"],"names":[],"mappings":";;;;;;AAAe,SAAS;IACtB,qBACE,8OAAC;QACC,OAAO;YACL,SAAS;YACT,WAAW;YACX,YAAY;YACZ,gBAAgB;YAChB,eAAe;YACf,KAAK;QACP;;0BAEA,8OAAC;gBAAI,WAAU;0BAAU;;;;;;0BACzB,8OAAC;gBACC,OAAO;oBACL,YAAY;oBACZ,UAAU;oBACV,YAAY;oBACZ,OAAO;oBACP,QAAQ;gBACV;0BACD;;;;;;0BAGD,8OAAC;gBAAE,OAAO;oBAAE,OAAO;oBAA2B,YAAY;gBAAmB;0BAAG;;;;;;;;;;;;AAKtF","debugId":null}}]
+}

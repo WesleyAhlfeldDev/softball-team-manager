@@ -1,0 +1,433 @@
+// ─────────────────────────────────────────────────────────────
+// Prisma Schema — Slowpitch Softball Team Manager
+// ─────────────────────────────────────────────────────────────
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider  = "postgresql"
+  url       = env("DATABASE_URL")
+  directUrl = env("DATABASE_URL_UNPOOLED")
+}
+
+// ─────────────────────────────────────────────────────────────
+// AUTH
+// ─────────────────────────────────────────────────────────────
+
+model User {
+  id            String    @id @default(cuid())
+  email         String    @unique
+  passwordHash  String
+  name          String?
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
+
+  teams         Team[]
+
+  @@map("users")
+}
+
+// ─────────────────────────────────────────────────────────────
+// TEAM
+// ─────────────────────────────────────────────────────────────
+
+model Team {
+  id          String   @id @default(cuid())
+  name        String
+  season      String   // e.g. "Spring 2025", "Fall 2025"
+  league      String?  // e.g. "City Rec League"
+  logoUrl     String?
+  homeField      String?
+  teamColor      String?  // hex color e.g. #00e87a
+  defaultLineup  String?  // JSON array of LineupSlotInput
+  leagueRules    String?  // JSON LeagueRules object
+  createdAt      DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  // Owner / admin
+  userId      String
+  user        User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  // Relations
+  players     Player[]
+  games       Game[]
+  teamStats   TeamSeasonStats?
+
+  @@map("teams")
+}
+
+// ─────────────────────────────────────────────────────────────
+// PLAYER
+// ─────────────────────────────────────────────────────────────
+
+enum FieldingPosition {
+  PITCHER             // P
+  CATCHER             // C
+  FIRST_BASE          // 1B
+  SECOND_BASE         // 2B
+  THIRD_BASE          // 3B
+  SHORTSTOP           // SS
+  LEFT_FIELD          // LF
+  LEFT_CENTER_FIELD   // LCF (replaces SF in some lineups)
+  CENTER_FIELD        // CF
+  RIGHT_CENTER_FIELD  // RCF (replaces SF in some lineups)
+  RIGHT_FIELD         // RF
+  SHORT_FIELD         // SF  (10th player, classic slowpitch)
+  EXTRA_PLAYER        // EP  (optional 11th)
+  BENCH
+  SIT                 // Player is in batting order but not fielding this inning
+}
+
+enum Gender {
+  MALE
+  FEMALE
+  NON_BINARY
+  PREFER_NOT_TO_SAY
+}
+
+model Player {
+  id               String             @id @default(cuid())
+  teamId           String
+  team             Team               @relation(fields: [teamId], references: [id], onDelete: Cascade)
+
+  // Identity
+  firstName        String
+  lastName         String
+  jerseyNumber     String?
+  gender           Gender?
+  primaryPosition  FieldingPosition   @default(BENCH)
+  positions        FieldingPosition[]
+  isActive         Boolean            @default(true)
+  notes            String?
+
+  createdAt        DateTime           @default(now())
+  updatedAt        DateTime           @updatedAt
+
+  // Relations
+  lineupSlots      LineupSlot[]
+  plateAppearances PlateAppearance[]
+  playerStats      PlayerSeasonStats?
+
+  @@map("players")
+}
+
+
+// ─────────────────────────────────────────────────────────────
+// GAME SCHEDULE
+// ─────────────────────────────────────────────────────────────
+
+enum GameStatus {
+  SCHEDULED
+  IN_PROGRESS
+  FINAL
+  POSTPONED
+  CANCELLED
+  FORFEIT
+}
+
+model Game {
+  id            String     @id @default(cuid())
+  teamId        String
+  team          Team       @relation(fields: [teamId], references: [id], onDelete: Cascade)
+
+  // Schedule info
+  opponent      String
+  gameDate      DateTime
+  location      String?
+  isHome        Boolean?   // null = TBD, true = home, false = away
+  status        GameStatus @default(SCHEDULED)
+  notes         String?
+
+  // Scoring
+  teamRuns      Int        @default(0)
+  opponentRuns  Int        @default(0)
+  teamHits      Int        @default(0)
+  opponentHits  Int        @default(0)
+  teamErrors    Int        @default(0)
+  opponentErrors Int       @default(0)
+
+  // Game settings
+  totalInnings  Int        @default(7)   // Standard slowpitch is 7
+  mercyRule     Int?       @default(15)  // Run limit to end early (e.g. 15 after 4)
+  mercyInning   Int?       @default(4)   // Inning mercy rule kicks in
+
+  // Timestamps
+  startedAt     DateTime?
+  completedAt   DateTime?
+  createdAt     DateTime   @default(now())
+  updatedAt     DateTime   @updatedAt
+
+  // Relations
+  innings          Inning[]
+  lineup           LineupSlot[]
+  playEvents       PlayEvent[]
+  playerGameStats  PlayerGameStats[]
+  plateAppearances PlateAppearance[]
+
+  @@map("games")
+}
+
+// ─────────────────────────────────────────────────────────────
+// INNING-BY-INNING LINE SCORE
+// ─────────────────────────────────────────────────────────────
+
+model Inning {
+  id            String  @id @default(cuid())
+  gameId        String
+  game          Game    @relation(fields: [gameId], references: [id], onDelete: Cascade)
+
+  inningNumber  Int     // 1–7 (or more if extras)
+  teamRuns      Int     @default(0)
+  opponentRuns  Int     @default(0)
+  teamHits      Int     @default(0)
+  teamErrors    Int     @default(0)
+  outs          Int     @default(0)   // for in-progress innings
+
+  isComplete    Boolean @default(false)
+
+  // Relations
+  playEvents    PlayEvent[]
+
+  @@unique([gameId, inningNumber])
+  @@map("innings")
+}
+
+// ─────────────────────────────────────────────────────────────
+// LINEUP
+// ─────────────────────────────────────────────────────────────
+
+model LineupSlot {
+  id             String          @id @default(cuid())
+  gameId         String
+  game           Game            @relation(fields: [gameId], references: [id], onDelete: Cascade)
+  playerId       String
+  player         Player          @relation(fields: [playerId], references: [id], onDelete: Cascade)
+
+  battingOrder   Int             // 1–11
+  fieldingPosition FieldingPosition
+
+  @@unique([gameId, battingOrder])
+  @@unique([gameId, playerId])
+  @@map("lineup_slots")
+}
+
+// ─────────────────────────────────────────────────────────────
+// PLATE APPEARANCES (scorebook heart)
+// ─────────────────────────────────────────────────────────────
+
+enum PlateAppearanceResult {
+  // Hits
+  SINGLE
+  DOUBLE
+  TRIPLE
+  HOME_RUN
+
+  // Outs
+  GROUNDOUT
+  FLYOUT
+  LINEOUT
+  POPOUT
+  STRIKEOUT          // Some slow pitch leagues allow
+
+  // On base (non-hit)
+  WALK
+  HIT_BY_PITCH
+  REACHED_ON_ERROR
+
+  // Other
+  SAC_FLY
+  SAC_BUNT
+  FIELDERS_CHOICE
+  DOUBLE_PLAY
+  TRIPLE_PLAY
+}
+
+model PlateAppearance {
+  id             String               @id @default(cuid())
+  gameId         String
+  game           Game                 @relation(fields: [gameId], references: [id], onDelete: Cascade)
+  playerId       String
+  player         Player               @relation(fields: [playerId], references: [id], onDelete: Cascade)
+
+  inningNumber   Int
+  battingOrderSlot Int               // Which spot in order (1–11)
+  atBatNumber    Int                 // Sequential count for this player this game
+
+  result         PlateAppearanceResult
+  rbis           Int                 @default(0)
+  runsScored     Boolean             @default(false)
+  leftOnBase     Int                 @default(0)
+
+  // Optional detail
+  hitDirection   String?             // "pull", "center", "oppo"
+  hardHit        Boolean             @default(false)
+  notes          String?
+
+  createdAt      DateTime            @default(now())
+
+  @@map("plate_appearances")
+}
+
+// ─────────────────────────────────────────────────────────────
+// PLAY EVENT LOG (real-time scorebook feed)
+// ─────────────────────────────────────────────────────────────
+
+enum PlayEventType {
+  PLATE_APPEARANCE
+  RUN_SCORED
+  SUBSTITUTION
+  INNING_START
+  INNING_END
+  GAME_START
+  GAME_END
+  MERCY_RULE
+  NOTE
+}
+
+model PlayEvent {
+  id            String        @id @default(cuid())
+  gameId        String
+  game          Game          @relation(fields: [gameId], references: [id], onDelete: Cascade)
+  inningId      String?
+  inning        Inning?       @relation(fields: [inningId], references: [id])
+
+  type          PlayEventType
+  inningNumber  Int?
+  description   String        // Human-readable: "+1 run — Jones (2B, 1 RBI)"
+  isUndo        Boolean       @default(false)
+
+  createdAt     DateTime      @default(now())
+
+  @@map("play_events")
+}
+
+// ─────────────────────────────────────────────────────────────
+// PLAYER STATS — PER GAME
+// ─────────────────────────────────────────────────────────────
+
+model PlayerGameStats {
+  id             String  @id @default(cuid())
+  gameId         String
+  game           Game    @relation(fields: [gameId], references: [id], onDelete: Cascade)
+  playerId       String
+
+  // Batting
+  atBats         Int     @default(0)
+  plateAppearances Int   @default(0)
+  hits           Int     @default(0)
+  singles        Int     @default(0)
+  doubles        Int     @default(0)
+  triples        Int     @default(0)
+  homeRuns       Int     @default(0)
+  rbi            Int     @default(0)
+  runs           Int     @default(0)
+  walks          Int     @default(0)
+  strikeouts     Int     @default(0)
+  sacFlies       Int     @default(0)
+  reachedOnError Int     @default(0)
+  leftOnBase     Int     @default(0)
+  hardHits       Int     @default(0)
+
+  // Calculated (stored for fast queries)
+  battingAvg     Float?  // H / AB
+  slugging       Float?  // (1B + 2×2B + 3×3B + 4×HR) / AB
+  obp            Float?  // (H + BB + HBP) / (AB + BB + HBP + SF)
+  ops            Float?  // OBP + SLG
+
+  @@unique([gameId, playerId])
+  @@map("player_game_stats")
+}
+
+// ─────────────────────────────────────────────────────────────
+// PLAYER STATS — SEASON TOTALS
+// ─────────────────────────────────────────────────────────────
+
+model PlayerSeasonStats {
+  id             String  @id @default(cuid())
+  playerId       String  @unique
+  player         Player  @relation(fields: [playerId], references: [id], onDelete: Cascade)
+
+  // Games played
+  gamesPlayed    Int     @default(0)
+
+  // Batting totals
+  atBats         Int     @default(0)
+  plateAppearances Int   @default(0)
+  hits           Int     @default(0)
+  singles        Int     @default(0)
+  doubles        Int     @default(0)
+  triples        Int     @default(0)
+  homeRuns       Int     @default(0)
+  rbi            Int     @default(0)
+  runs           Int     @default(0)
+  walks          Int     @default(0)
+  strikeouts     Int     @default(0)
+  sacFlies       Int     @default(0)
+  reachedOnError Int     @default(0)
+  leftOnBase     Int     @default(0)
+  hardHits       Int     @default(0)
+
+  // Calculated season averages
+  battingAvg     Float?
+  slugging       Float?
+  obp            Float?
+  ops            Float?
+
+  // Streaks
+  currentHitStreak    Int @default(0)
+  longestHitStreak    Int @default(0)
+  currentOnBaseStreak Int @default(0)
+
+  updatedAt      DateTime @updatedAt
+
+  @@map("player_season_stats")
+}
+
+// ─────────────────────────────────────────────────────────────
+// TEAM STATS — SEASON TOTALS
+// ─────────────────────────────────────────────────────────────
+
+model TeamSeasonStats {
+  id             String  @id @default(cuid())
+  teamId         String  @unique
+  team           Team    @relation(fields: [teamId], references: [id], onDelete: Cascade)
+
+  // Record
+  wins           Int     @default(0)
+  losses         Int     @default(0)
+  ties           Int     @default(0)
+  forfeits       Int     @default(0)
+
+  // Scoring
+  runsScored     Int     @default(0)
+  runsAllowed    Int     @default(0)
+  runDiff        Int     @default(0)  // runsScored - runsAllowed
+
+  // Batting
+  hits           Int     @default(0)
+  doubles        Int     @default(0)
+  triples        Int     @default(0)
+  homeRuns       Int     @default(0)
+  walks          Int     @default(0)
+  strikeouts     Int     @default(0)
+  errors         Int     @default(0)
+  leftOnBase     Int     @default(0)
+
+  // Averages
+  teamBattingAvg Float?
+  teamSlg        Float?
+  teamObp        Float?
+  teamOps        Float?
+  runsPerGame    Float?
+
+  // Streaks
+  currentWinStreak  Int  @default(0)
+  longestWinStreak  Int  @default(0)
+  currentLoseStreak Int  @default(0)
+
+  updatedAt      DateTime @updatedAt
+
+  @@map("team_season_stats")
+}

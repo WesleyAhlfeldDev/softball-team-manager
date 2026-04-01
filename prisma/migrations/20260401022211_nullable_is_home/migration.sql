@@ -1,0 +1,3 @@
+-- AlterTable
+ALTER TABLE "games" ALTER COLUMN "isHome" DROP NOT NULL,
+ALTER COLUMN "isHome" DROP DEFAULT;
