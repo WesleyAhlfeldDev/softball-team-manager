@@ -3,7 +3,8 @@
 import { prisma } from "@/lib/db";
 import { auth } from "@/lib/auth";
 import { revalidatePath } from "next/cache";
-import { GameStatus, PlateAppearanceResult } from "@prisma/client";
+import type { PlateAppearanceResult } from "@prisma/client";
+import { GameStatus } from "@prisma/client";
 
 async function getTeamId() {
   const session = await auth();
@@ -131,7 +132,7 @@ export async function recordPlateAppearance(data: {
       where: { id: inning.id },
       data: {
         teamRuns: { increment: data.rbis },
-        teamHits: isHit ? { increment: 1 } : undefined,
+        ...(isHit && { teamHits: { increment: 1 } }),
       },
     });
   } else if (isHit) {
@@ -146,7 +147,7 @@ export async function recordPlateAppearance(data: {
     where: { id: data.gameId },
     data: {
       teamRuns: { increment: data.rbis },
-      teamHits: isHit ? { increment: 1 } : undefined,
+      ...(isHit && { teamHits: { increment: 1 } }),
     },
   });
 
@@ -173,7 +174,7 @@ export async function undoLastPlateAppearance(gameId: string) {
     where: { id: gameId },
     data: {
       teamRuns: { decrement: last.rbis },
-      teamHits: isHit ? { decrement: 1 } : undefined,
+      ...(isHit && { teamHits: { decrement: 1 } }),
     },
   });
 
@@ -186,7 +187,7 @@ export async function undoLastPlateAppearance(gameId: string) {
       where: { id: inning.id },
       data: {
         teamRuns: { decrement: last.rbis },
-        teamHits: isHit ? { decrement: 1 } : undefined,
+        ...(isHit && { teamHits: { decrement: 1 } }),
       },
     });
   }
@@ -385,8 +386,8 @@ export async function endGame(gameId: string) {
   await prisma.teamSeasonStats.updateMany({
     where: { teamId },
     data: {
-      wins:        won  ? { increment: 1 } : undefined,
-      losses:      lost ? { increment: 1 } : undefined,
+      ...(won  && { wins:   { increment: 1 } }),
+      ...(lost && { losses: { increment: 1 } }),
       runsScored:  { increment: game.teamRuns },
       runsAllowed: { increment: game.opponentRuns },
       runDiff:     { increment: game.teamRuns - game.opponentRuns },

@@ -3,7 +3,7 @@
 import { prisma } from "@/lib/db";
 import { auth } from "@/lib/auth";
 import { revalidatePath } from "next/cache";
-import { FieldingPosition } from "@prisma/client";
+import type { FieldingPosition } from "@prisma/client";
 
 async function getTeamId() {
   const session = await auth();

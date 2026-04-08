@@ -11,10 +11,11 @@ interface ScoreboookPageProps {
 export default async function ScoreboookPage({ params }: ScoreboookPageProps) {
   const { gameId } = await params;
   const session = await auth();
-  if (!session) redirect("/login");
+  if (!session?.user?.id) redirect("/login");
+  const userId = session.user.id;
 
   const team = await prisma.team.findFirst({
-    where: { userId: session.user.id },
+    where: { userId },
     select: { id: true, name: true, teamColor: true, defaultLineup: true },
   });
   if (!team) redirect("/login");

@@ -11,10 +11,11 @@ export const metadata = { title: "Schedule" };
 
 export default async function SchedulePage() {
   const session = await auth();
-  if (!session) redirect("/login");
+  if (!session?.user?.id) redirect("/login");
+  const userId = session.user.id;
 
   const team = await prisma.team.findFirst({
-    where: { userId: session.user.id },
+    where: { userId },
     include: {
       games: { orderBy: { gameDate: "asc" } },
       teamStats: true,

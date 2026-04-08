@@ -41,9 +41,16 @@ export async function saveTeamInfo(formData: FormData) {
     return { error: parsed.error.errors[0]?.message ?? "Invalid data" };
   }
 
+  const { league, homeField, teamColor, logoUrl, ...required } = parsed.data;
   await prisma.team.update({
     where: { id: teamId },
-    data: parsed.data,
+    data: {
+      ...required,
+      league:    league    ?? null,
+      homeField: homeField ?? null,
+      teamColor: teamColor ?? null,
+      logoUrl:   logoUrl   ?? null,
+    },
   });
 
   revalidatePath("/dashboard");

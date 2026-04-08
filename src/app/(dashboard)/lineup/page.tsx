@@ -10,10 +10,11 @@ export const metadata = { title: "Lineup" };
 
 export default async function LineupPage() {
   const session = await auth();
-  if (!session) redirect("/login");
+  if (!session?.user?.id) redirect("/login");
+  const userId = session.user.id;
 
   const team = await prisma.team.findFirst({
-    where: { userId: session.user.id },
+    where: { userId },
     include: {
       players: {
         where: { isActive: true },
