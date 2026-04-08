@@ -1,0 +1,10 @@
+{
+  "/_not-found/page": "/_not-found",
+  "/api/auth/[...nextauth]/route": "/api/auth/[...nextauth]",
+  "/login/page": "/login",
+  "/scorebook/[gameId]/page": "/scorebook/[gameId]",
+  "/(dashboard)/lineup/page": "/lineup",
+  "/(dashboard)/roster/page": "/roster",
+  "/(dashboard)/schedule/page": "/schedule",
+  "/(dashboard)/dashboard/page": "/dashboard"
+}
