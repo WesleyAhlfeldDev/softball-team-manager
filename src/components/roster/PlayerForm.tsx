@@ -9,7 +9,7 @@ import {
   faSpinner,
 } from "@fortawesome/free-solid-svg-icons";
 import { addPlayer, updatePlayer } from "@/server/actions/players";
-import { FieldingPosition, Gender } from "@prisma/client";
+import type { FieldingPosition, Gender } from "@prisma/client";
 
 const POSITIONS: { value: FieldingPosition; label: string; short: string }[] = [
   { value: "PITCHER",      label: "Pitcher",      short: "P"  },

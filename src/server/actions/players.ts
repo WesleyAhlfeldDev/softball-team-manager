@@ -56,8 +56,15 @@ export async function addPlayer(formData: FormData) {
     if (existing) return { error: `Jersey #${parsed.data.jerseyNumber} is already taken` };
   }
 
+  const { jerseyNumber, gender, notes, ...required } = parsed.data;
   await prisma.player.create({
-    data: { teamId, ...parsed.data, playerStats: { create: {} } },
+    data: {
+      teamId, ...required,
+      jerseyNumber: jerseyNumber ?? null,
+      gender: gender ?? null,
+      notes: notes ?? null,
+      playerStats: { create: {} },
+    },
   });
 
   revalidatePath("/roster");
@@ -76,9 +83,10 @@ export async function updatePlayer(playerId: string, formData: FormData) {
     if (existing) return { error: `Jersey #${parsed.data.jerseyNumber} is already taken` };
   }
 
+  const { jerseyNumber: jn, gender: g, notes: n, ...requiredFields } = parsed.data;
   await prisma.player.update({
     where: { id: playerId, teamId },
-    data: parsed.data,
+    data: { ...requiredFields, jerseyNumber: jn ?? null, gender: g ?? null, notes: n ?? null },
   });
 
   revalidatePath("/roster");

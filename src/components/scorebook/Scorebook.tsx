@@ -405,7 +405,7 @@ export function Scorebook({ game, teamName, teamColor }: ScoreboookProps) {
   const [currentInning, setCurrentInning] = useState(() => {
     const s = getSaved();
     if (s?.currentInning) return s.currentInning;
-    return Math.max(1, game.innings.find((i) => !i.isComplete)?.inningNumber ?? game.innings.length || 1);
+    return Math.max(1, (game.innings.find((i) => !i.isComplete)?.inningNumber ?? game.innings.length) || 1);
   });
   const [currentBatterIndex, setCurrentBatterIndex] = useState(() => getSaved()?.batterIndex ?? 0);
   const [atBatCounts, setAtBatCounts]   = useState<Record<string, number>>(() => getSaved()?.atBatCounts ?? {});

@@ -4,7 +4,7 @@ import { prisma } from "@/lib/db";
 import { auth } from "@/lib/auth";
 import { revalidatePath } from "next/cache";
 import { z } from "zod";
-import { GameStatus } from "@prisma/client";
+import type { GameStatus } from "@prisma/client";
 
 const gameSchema = z.object({
   opponent:     z.string().min(1, "Opponent name is required").max(100),
@@ -52,7 +52,11 @@ export async function addGame(formData: FormData) {
   const gameDateObj = new Date(dateTimeStr);
 
   await prisma.game.create({
-    data: { teamId, gameDate: gameDateObj, ...rest },
+    data: {
+      teamId, gameDate: gameDateObj,
+      opponent: rest.opponent, isHome: rest.isHome, totalInnings: rest.totalInnings,
+      location: rest.location ?? null, notes: rest.notes ?? null,
+    },
   });
 
   revalidatePath("/schedule");
@@ -84,7 +88,11 @@ export async function updateGame(gameId: string, formData: FormData) {
 
   await prisma.game.update({
     where: { id: gameId, teamId },
-    data: { gameDate: gameDateObj, ...rest },
+    data: {
+      gameDate: gameDateObj,
+      opponent: rest.opponent, isHome: rest.isHome, totalInnings: rest.totalInnings,
+      location: rest.location ?? null, notes: rest.notes ?? null,
+    },
   });
 
   revalidatePath("/schedule");
@@ -143,8 +151,8 @@ export async function logGameScore(
   await prisma.teamSeasonStats.updateMany({
     where: { teamId },
     data: {
-      wins:        won  ? { increment: 1 } : undefined,
-      losses:      lost ? { increment: 1 } : undefined,
+      ...(won  && { wins:   { increment: 1 } }),
+      ...(lost && { losses: { increment: 1 } }),
       runsScored:  { increment: teamRuns },
       runsAllowed: { increment: opponentRuns },
       runDiff:     { increment: teamRuns - opponentRuns },

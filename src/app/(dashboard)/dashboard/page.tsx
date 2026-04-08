@@ -16,10 +16,11 @@ export const metadata = { title: "Dashboard" };
 
 export default async function DashboardPage() {
   const session = await auth();
-  if (!session) redirect("/login");
+  if (!session?.user?.id) redirect("/login");
+  const userId = session.user.id;
 
   const team = await prisma.team.findFirst({
-    where: { userId: session.user.id },
+    where: { userId },
     include: {
       players:   { where: { isActive: true } },
       games:     { orderBy: { gameDate: "asc" } },

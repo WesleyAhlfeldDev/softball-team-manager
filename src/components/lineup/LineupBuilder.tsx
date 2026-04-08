@@ -360,7 +360,8 @@ export function LineupBuilder({ players, games, defaultLineup, leagueRules }: Li
     setSaving(true);
     await saveDefaultLineup(lineup.map((s) => ({
       playerId: s.playerId, battingOrder: s.battingOrder,
-      fieldingPosition: s.fieldingPosition, inningPositions: s.inningPositions,
+      fieldingPosition: s.fieldingPosition,
+      ...(s.inningPositions !== undefined && { inningPositions: s.inningPositions }),
     })));
     setSaving(false);
     setSavedMsg("Default lineup saved!");
@@ -372,7 +373,8 @@ export function LineupBuilder({ players, games, defaultLineup, leagueRules }: Li
     setApplying(true);
     await applyLineupToGame(selectedGameId, lineup.map((s) => ({
       playerId: s.playerId, battingOrder: s.battingOrder,
-      fieldingPosition: s.fieldingPosition, inningPositions: s.inningPositions,
+      fieldingPosition: s.fieldingPosition,
+      ...(s.inningPositions !== undefined && { inningPositions: s.inningPositions }),
     })));
     setApplying(false);
     setSavedMsg("Lineup applied to game!");

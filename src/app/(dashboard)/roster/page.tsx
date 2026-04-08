@@ -11,10 +11,11 @@ export const metadata = { title: "Roster" };
 
 export default async function RosterPage() {
   const session = await auth();
-  if (!session) redirect("/login");
+  if (!session?.user?.id) redirect("/login");
+  const userId = session.user.id;
 
   const team = await prisma.team.findFirst({
-    where: { userId: session.user.id },
+    where: { userId },
     include: {
       players: {
         orderBy: [{ isActive: "desc" }, { jerseyNumber: "asc" }],
