@@ -14,15 +14,10 @@
           "originalSource": "/((?!_next/static|_next/image|favicon.ico|.*\\.png$|.*\\.svg$).*)"
         }
       ],
-      "wasm": [
-        {
-          "name": "wasm_f4b69850bc2f6b02c2a186cea508d821c6b30f98",
-          "filePath": "server/edge-chunks/wasm_f4b69850bc2f6b02c2a186cea508d821c6b30f98.wasm"
-        }
-      ],
+      "wasm": [],
       "assets": [],
       "env": {
-        "__NEXT_BUILD_ID": "mhn3Cob1dQ1taxqPGTDrP",
+        "__NEXT_BUILD_ID": "KHpegCX_QM7SfwxNmhq83",
         "NEXT_SERVER_ACTIONS_ENCRYPTION_KEY": "XS5e3P3JcIuC+4ltFeUtak+UG+hcSmalLnioEEX5Yso=",
         "__NEXT_PREVIEW_MODE_ID": "a0b2b98cbd89f6a8b32dadb8a3885727",
         "__NEXT_PREVIEW_MODE_SIGNING_KEY": "54f3ee5fac176acb39a4bbfdfa966b79956262476e8be0f14bc77dd5a1c86e3c",
