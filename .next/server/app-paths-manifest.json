@@ -1,10 +1,10 @@
 {
   "/_not-found/page": "app/_not-found/page.js",
   "/api/auth/[...nextauth]/route": "app/api/auth/[...nextauth]/route.js",
-  "/scorebook/[gameId]/page": "app/scorebook/[gameId]/page.js",
   "/login/page": "app/login/page.js",
-  "/(dashboard)/roster/page": "app/(dashboard)/roster/page.js",
-  "/(dashboard)/schedule/page": "app/(dashboard)/schedule/page.js",
+  "/scorebook/[gameId]/page": "app/scorebook/[gameId]/page.js",
   "/(dashboard)/dashboard/page": "app/(dashboard)/dashboard/page.js",
-  "/(dashboard)/lineup/page": "app/(dashboard)/lineup/page.js"
+  "/(dashboard)/roster/page": "app/(dashboard)/roster/page.js",
+  "/(dashboard)/lineup/page": "app/(dashboard)/lineup/page.js",
+  "/(dashboard)/schedule/page": "app/(dashboard)/schedule/page.js"
 }
