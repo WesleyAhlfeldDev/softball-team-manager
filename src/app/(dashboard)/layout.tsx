@@ -14,6 +14,7 @@ import {
   faBars,
   faXmark,
   faBaseballBatBall,
+  faChartBar,
 } from "@fortawesome/free-solid-svg-icons";
 import { useState } from "react";
 import { cn } from "@/lib/utils";
@@ -23,6 +24,7 @@ const navItems = [
   { href: "/roster",    label: "Roster",    icon: faUsers },
   { href: "/schedule",  label: "Schedule",  icon: faCalendarDays },
   { href: "/lineup",    label: "Lineup",    icon: faListOl },
+  { href: "/stats",     label: "Stats",     icon: faChartBar },
 ];
 
 export default function DashboardLayout({

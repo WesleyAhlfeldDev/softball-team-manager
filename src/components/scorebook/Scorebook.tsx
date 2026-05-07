@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { useRouter } from "next/navigation";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import {
@@ -28,6 +28,13 @@ const POS_SHORT: Partial<Record<FieldingPosition, string>> = {
   RIGHT_CENTER_FIELD:"RCF", RIGHT_FIELD:"RF",
   SHORT_FIELD:"SF", EXTRA_PLAYER:"EP", BENCH:"—", SIT:"SIT",
 };
+
+const ALL_POSITIONS: FieldingPosition[] = [
+  "PITCHER","CATCHER","FIRST_BASE","SECOND_BASE","THIRD_BASE",
+  "SHORTSTOP","LEFT_FIELD","LEFT_CENTER_FIELD","CENTER_FIELD",
+  "RIGHT_CENTER_FIELD","RIGHT_FIELD","SHORT_FIELD","EXTRA_PLAYER",
+  "BENCH","SIT",
+];
 
 // ── Result button config ───────────────────────────────────────
 const HITS: { result: PlateAppearanceResult; label: string; color: string; bg: string }[] = [
@@ -91,6 +98,7 @@ interface PlateAppearanceRecord {
   result: PlateAppearanceResult;
   rbis: number;
   runsScored: boolean;
+  scoredRunnerIds?: string[];
   player: { firstName: string; lastName: string };
 }
 interface GameData {
@@ -120,7 +128,7 @@ function outsRecorded(r: PlateAppearanceResult): number {
   if (r === "DOUBLE_PLAY") return 2;
   if (r === "TRIPLE_PLAY") return 3;
   // FC and ROE when batter is out = 1 out (handled via batterFinalBase === null)
-  if (["GROUNDOUT","FLYOUT","LINEOUT","POPOUT","STRIKEOUT","FIELDERS_CHOICE"].includes(r)) return 1;
+  if (["GROUNDOUT","FLYOUT","LINEOUT","POPOUT","STRIKEOUT","FIELDERS_CHOICE","SAC_FLY","SAC_BUNT"].includes(r)) return 1;
   return 0;
 }
 function batterReachesBase(r: PlateAppearanceResult): Base | null {
@@ -249,19 +257,26 @@ function RunnerAdvancement({
 // ── Lineup Panel ───────────────────────────────────────────────
 function LineupPanel({
   lineup, currentBatterIndex, currentInning, teamColor, runners,
+  positionOverrides, inningPositionOverrides, onPositionChange,
 }: {
   lineup: LineupSlot[];
   currentBatterIndex: number;
   currentInning: number;
   teamColor: string;
   runners: Runners;
+  positionOverrides: Record<string, FieldingPosition>;
+  inningPositionOverrides: Record<string, Record<number, FieldingPosition>>;
+  onPositionChange: (playerId: string, pos: FieldingPosition, inningOnly: boolean) => void;
 }) {
+  const [editingId, setEditingId] = useState<string | null>(null);
+  const [pendingPos, setPendingPos] = useState<FieldingPosition | null>(null);
   const activeBatterIdx = currentBatterIndex % lineup.length;
-  // Which players are on base
   const onBaseIds = new Set(
     [runners.first, runners.second, runners.third]
       .filter(Boolean).map((p) => p!.id)
   );
+
+  const closeEditor = () => { setEditingId(null); setPendingPos(null); };
 
   return (
     <div style={{ height: "100%", overflowY: "auto", padding: "12px 0" }}>
@@ -272,58 +287,130 @@ function LineupPanel({
       </div>
       {lineup.map((slot, i) => {
         const isActive = i === activeBatterIdx;
-        const pos = slot.inningPositions?.[currentInning] ?? slot.fieldingPosition;
+        const pos = inningPositionOverrides[slot.playerId]?.[currentInning] ??
+          positionOverrides[slot.playerId] ??
+          slot.inningPositions?.[currentInning] ??
+          slot.fieldingPosition;
         const posLabel = POS_SHORT[pos] ?? "—";
         const isSitting = pos === "SIT";
         const isOnBase = onBaseIds.has(slot.playerId);
+        const isEditing = editingId === slot.playerId;
 
         return (
-          <div key={slot.playerId}
-            style={{
-              display: "flex", alignItems: "center", gap: 8,
-              padding: "7px 12px",
-              background: isActive ? `${teamColor}18` : "transparent",
-              borderLeft: `3px solid ${isActive ? teamColor : "transparent"}`,
-              borderBottom: "1px solid rgba(255,255,255,0.04)",
-              opacity: isSitting ? 0.4 : 1,
-            }}>
-            {/* Batting spot */}
-            <span style={{
-              fontFamily: "var(--font-display)", fontWeight: 900,
-              fontSize: isActive ? "1.1rem" : "0.9rem",
-              color: isActive ? teamColor : "rgba(238,238,245,0.4)",
-              width: 18, textAlign: "center", flexShrink: 0,
-            }}>
-              {i + 1}
-            </span>
-            {/* Name */}
-            <div style={{ flex: 1, minWidth: 0 }}>
-              <div style={{
-                fontSize: "0.8rem", fontWeight: isActive ? 700 : 500,
-                color: isActive ? "#eeeef5" : "rgba(238,238,245,0.65)",
-                fontFamily: "var(--font-body)",
-                whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis",
+          <div key={slot.playerId}>
+            <div
+              style={{
+                display: "flex", alignItems: "center", gap: 8,
+                padding: "7px 12px",
+                background: isActive ? `${teamColor}18` : "transparent",
+                borderLeft: `3px solid ${isActive ? teamColor : "transparent"}`,
+                borderBottom: isEditing ? "none" : "1px solid rgba(255,255,255,0.04)",
+                opacity: isSitting ? 0.4 : 1,
               }}>
-                {slot.player.firstName} {slot.player.lastName}
-                {isOnBase && (
-                  <span style={{ marginLeft: 5, fontSize: "0.6rem",
-                    color: teamColor, fontWeight: 800 }}>●</span>
-                )}
+              <span style={{
+                fontFamily: "var(--font-display)", fontWeight: 900,
+                fontSize: isActive ? "1.1rem" : "0.9rem",
+                color: isActive ? teamColor : "rgba(238,238,245,0.4)",
+                width: 18, textAlign: "center", flexShrink: 0,
+              }}>
+                {i + 1}
+              </span>
+              <div style={{ flex: 1, minWidth: 0 }}>
+                <div style={{
+                  fontSize: "0.8rem", fontWeight: isActive ? 700 : 500,
+                  color: isActive ? "#eeeef5" : "rgba(238,238,245,0.65)",
+                  fontFamily: "var(--font-body)",
+                  whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis",
+                }}>
+                  {slot.player.firstName} {slot.player.lastName}
+                  {isOnBase && (
+                    <span style={{ marginLeft: 5, fontSize: "0.6rem",
+                      color: teamColor, fontWeight: 800 }}>●</span>
+                  )}
+                </div>
+                <div style={{ fontSize: "0.65rem", color: "rgba(238,238,245,0.3)",
+                  fontFamily: "var(--font-mono)" }}>
+                  #{slot.player.jerseyNumber ?? "—"}
+                </div>
               </div>
-              <div style={{ fontSize: "0.65rem", color: "rgba(238,238,245,0.3)",
-                fontFamily: "var(--font-mono)" }}>
-                #{slot.player.jerseyNumber ?? "—"}
-              </div>
+              {/* Position badge — click to edit */}
+              <span
+                onClick={() => { setEditingId(isEditing ? null : slot.playerId); setPendingPos(null); }}
+                title="Tap to change position"
+                style={{
+                  fontFamily: "var(--font-mono)", fontSize: "0.7rem", fontWeight: 700,
+                  color: isEditing ? "#000" : isActive ? teamColor : isSitting ? "rgba(238,238,245,0.25)" : "rgba(238,238,245,0.45)",
+                  background: isEditing ? teamColor : isActive ? `${teamColor}22` : "rgba(255,255,255,0.05)",
+                  padding: "2px 6px", borderRadius: 5, flexShrink: 0,
+                  cursor: "pointer", userSelect: "none",
+                  outline: isEditing ? `2px solid ${teamColor}` : "none",
+                  outlineOffset: 1,
+                }}>
+                {posLabel}
+              </span>
             </div>
-            {/* Position */}
-            <span style={{
-              fontFamily: "var(--font-mono)", fontSize: "0.7rem", fontWeight: 700,
-              color: isActive ? teamColor : isSitting ? "rgba(238,238,245,0.25)" : "rgba(238,238,245,0.45)",
-              background: isActive ? `${teamColor}22` : "rgba(255,255,255,0.05)",
-              padding: "2px 6px", borderRadius: 5, flexShrink: 0,
-            }}>
-              {posLabel}
-            </span>
+
+            {/* Step 1: position grid */}
+            {isEditing && !pendingPos && (
+              <div style={{ padding: "8px 12px 10px", background: "rgba(255,255,255,0.04)",
+                borderBottom: "1px solid rgba(255,255,255,0.07)" }}>
+                <div style={{ fontSize: "0.55rem", fontWeight: 700, letterSpacing: "0.12em",
+                  color: "rgba(238,238,245,0.3)", fontFamily: "var(--font-display)", marginBottom: 6 }}>
+                  SELECT POSITION
+                </div>
+                <div style={{ display: "grid", gridTemplateColumns: "repeat(5,1fr)", gap: 4 }}>
+                  {ALL_POSITIONS.map((p) => (
+                    <button key={p}
+                      onClick={() => setPendingPos(p)}
+                      style={{
+                        padding: "6px 2px", borderRadius: 6, border: "none", cursor: "pointer",
+                        background: p === pos ? `${teamColor}33` : "rgba(255,255,255,0.08)",
+                        color: p === pos ? teamColor : "rgba(238,238,245,0.7)",
+                        fontFamily: "var(--font-mono)", fontSize: "0.65rem", fontWeight: 700,
+                      }}>
+                      {POS_SHORT[p] ?? p}
+                    </button>
+                  ))}
+                </div>
+              </div>
+            )}
+
+            {/* Step 2: scope question */}
+            {isEditing && pendingPos && (
+              <div style={{ padding: "10px 12px 12px", background: "rgba(255,255,255,0.04)",
+                borderBottom: "1px solid rgba(255,255,255,0.07)" }}>
+                <div style={{ fontSize: "0.6rem", fontWeight: 700, letterSpacing: "0.12em",
+                  color: "rgba(238,238,245,0.3)", fontFamily: "var(--font-display)", marginBottom: 8 }}>
+                  APPLY {POS_SHORT[pendingPos]} FOR…
+                </div>
+                <div style={{ display: "flex", gap: 6 }}>
+                  <button
+                    onClick={() => { onPositionChange(slot.playerId, pendingPos, true); closeEditor(); }}
+                    style={{ flex: 1, padding: "8px 4px", borderRadius: 8, border: "none",
+                      cursor: "pointer", background: "rgba(255,255,255,0.1)",
+                      color: "#eeeef5", fontFamily: "var(--font-display)",
+                      fontSize: "0.7rem", fontWeight: 800, letterSpacing: "0.05em" }}>
+                    INN {currentInning} ONLY
+                  </button>
+                  <button
+                    onClick={() => { onPositionChange(slot.playerId, pendingPos, false); closeEditor(); }}
+                    style={{ flex: 1, padding: "8px 4px", borderRadius: 8, border: "none",
+                      cursor: "pointer", background: teamColor,
+                      color: "#000", fontFamily: "var(--font-display)",
+                      fontSize: "0.7rem", fontWeight: 800, letterSpacing: "0.05em" }}>
+                    REST OF GAME
+                  </button>
+                  <button
+                    onClick={closeEditor}
+                    style={{ padding: "8px 10px", borderRadius: 8, border: "1px solid rgba(255,255,255,0.12)",
+                      cursor: "pointer", background: "transparent",
+                      color: "rgba(238,238,245,0.4)", fontFamily: "var(--font-display)",
+                      fontSize: "0.7rem", fontWeight: 700 }}>
+                    ✕
+                  </button>
+                </div>
+              </div>
+            )}
           </div>
         );
       })}
@@ -383,6 +470,16 @@ function PlayLogPanel({
   );
 }
 
+// ── Snapshot for undo stack ────────────────────────────────────
+interface GameSnapshot {
+  runners: Runners;
+  outsThisInning: number;
+  currentBatterIndex: number;
+  teamTotal: number;
+  opponentTotal: number;
+  innings: Inning[];
+}
+
 // ── Main Scorebook ─────────────────────────────────────────────
 export function Scorebook({ game, teamName, teamColor }: ScoreboookProps) {
   const router = useRouter();
@@ -397,25 +494,40 @@ export function Scorebook({ game, teamName, teamColor }: ScoreboookProps) {
         atBatCounts?: Record<string, number>;
         runners?: Runners;
         currentInning?: number;
+        history?: GameSnapshot[];
       } : null;
     } catch { return null; }
   };
 
   const [gameStarted, setGameStarted]   = useState(game.status === "IN_PROGRESS");
-  const [currentInning, setCurrentInning] = useState(() => {
-    const s = getSaved();
-    if (s?.currentInning) return s.currentInning;
-    return Math.max(1, (game.innings.find((i) => !i.isComplete)?.inningNumber ?? game.innings.length) || 1);
-  });
-  const [currentBatterIndex, setCurrentBatterIndex] = useState(() => getSaved()?.batterIndex ?? 0);
-  const [atBatCounts, setAtBatCounts]   = useState<Record<string, number>>(() => getSaved()?.atBatCounts ?? {});
-  const [runners, setRunners]           = useState<Runners>(() => getSaved()?.runners ?? { first: null, second: null, third: null });
+  const [currentInning, setCurrentInning] = useState(() =>
+    Math.max(1, (game.innings.find((i) => !i.isComplete)?.inningNumber ?? game.innings.length) || 1)
+  );
+  const [currentBatterIndex, setCurrentBatterIndex] = useState(0);
+  const [atBatCounts, setAtBatCounts]   = useState<Record<string, number>>({});
+  const [runners, setRunners]           = useState<Runners>({ first: null, second: null, third: null });
+  const [history, setHistory]           = useState<GameSnapshot[]>([]);
 
+  // Restore from localStorage after hydration (avoids SSR/client mismatch)
   useEffect(() => {
+    const saved = getSaved();
+    if (!saved) return;
+    if (saved.batterIndex !== undefined) setCurrentBatterIndex(saved.batterIndex);
+    if (saved.atBatCounts) setAtBatCounts(saved.atBatCounts);
+    if (saved.runners) setRunners(saved.runners);
+    if (saved.currentInning) setCurrentInning(saved.currentInning);
+    if (saved.history) setHistory(saved.history);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  // Save to localStorage — skip first run so we don't overwrite before restore fires
+  const skipFirstSaveRef = useRef(true);
+  useEffect(() => {
+    if (skipFirstSaveRef.current) { skipFirstSaveRef.current = false; return; }
     try {
-      localStorage.setItem(storageKey, JSON.stringify({ batterIndex: currentBatterIndex, atBatCounts, runners, currentInning }));
+      localStorage.setItem(storageKey, JSON.stringify({ batterIndex: currentBatterIndex, atBatCounts, runners, currentInning, history }));
     } catch {}
-  }, [currentBatterIndex, atBatCounts, runners, currentInning, storageKey]);
+  }, [currentBatterIndex, atBatCounts, runners, currentInning, history, storageKey]);
 
   const clearStorage = () => { try { localStorage.removeItem(storageKey); } catch {} };
 
@@ -427,17 +539,6 @@ export function Scorebook({ game, teamName, teamColor }: ScoreboookProps) {
   const [outsThisInning, setOutsThisInning] = useState(0);
   const [showInningEnd, setShowInningEnd]   = useState(false);
 
-  // Snapshot stack for undo
-  interface GameSnapshot {
-    runners: Runners;
-    outsThisInning: number;
-    currentBatterIndex: number;
-    teamTotal: number;
-    opponentTotal: number;
-    innings: Inning[];
-  }
-  const [history, setHistory] = useState<GameSnapshot[]>([]);
-
   const [innings, setInnings]               = useState<Inning[]>(game.innings);
   const [teamTotal, setTeamTotal]           = useState(game.teamRuns);
   const [opponentTotal, setOpponentTotal]   = useState(game.opponentRuns);
@@ -445,8 +546,31 @@ export function Scorebook({ game, teamName, teamColor }: ScoreboookProps) {
 
   const [confirmEnd, setConfirmEnd]             = useState(false);
   const [ending, setEnding]                     = useState(false);
+  const [gameOver, setGameOver]                 = useState(false);
+  const [showOpponentTop, setShowOpponentTop]   = useState(false);
   const [confirmRestart, setConfirmRestart]     = useState(false);
   const [restarting, setRestarting]             = useState(false);
+
+  // Per-player position overrides
+  const [positionOverrides, setPositionOverrides] = useState<Record<string, FieldingPosition>>({});
+  const [inningPositionOverrides, setInningPositionOverrides] = useState<Record<string, Record<number, FieldingPosition>>>({});
+
+  const handlePositionChange = (playerId: string, pos: FieldingPosition, inningOnly: boolean) => {
+    if (inningOnly) {
+      setInningPositionOverrides((prev) => ({
+        ...prev,
+        [playerId]: { ...(prev[playerId] ?? {}), [currentInning]: pos },
+      }));
+    } else {
+      setPositionOverrides((prev) => ({ ...prev, [playerId]: pos }));
+    }
+  };
+
+  const getSlotPos = (slot: LineupSlot, inning: number): FieldingPosition =>
+    inningPositionOverrides[slot.playerId]?.[inning] ??
+    positionOverrides[slot.playerId] ??
+    slot.inningPositions?.[inning] ??
+    slot.fieldingPosition;
 
   // Mobile right-side tab
   const [rightTab, setRightTab] = useState<RightTab>("lineup");
@@ -531,11 +655,13 @@ export function Scorebook({ game, teamName, teamColor }: ScoreboookProps) {
     const batterScored = scoredRunners.some((p) => p.id === batter.id);
     const isHit = isHitResult(result);
     const runsThisPA = scoredRunners.length;
+    const scoredRunnerIds = scoredRunners.map((r) => r.id);
     const newPA: PlateAppearanceRecord = {
       id: Math.random().toString(36).slice(2),
       playerId, inningNumber: currentInning,
       result, rbis: rbis - (batterScored ? 1 : 0),
       runsScored: batterScored,
+      scoredRunnerIds,
       player: { firstName: batter.firstName, lastName: batter.lastName },
     };
     setPlateAppearances((prev) => [newPA, ...prev]);
@@ -552,6 +678,7 @@ export function Scorebook({ game, teamName, teamColor }: ScoreboookProps) {
       gameId: game.id, playerId, inningNumber: currentInning,
       battingOrderSlot: currentBatter.battingOrder, atBatNumber: atBatNum,
       result, rbis: rbis - (batterScored ? 1 : 0), runsScored: batterScored,
+      scoredRunnerIds,
     });
     setCurrentBatterIndex((prev) => (prev + 1) % lineup.length);
     setSelectedResult(null); setRunnerDecisions([]); setBatterFinalBase(null); setStep("result");
@@ -605,6 +732,7 @@ export function Scorebook({ game, teamName, teamColor }: ScoreboookProps) {
       setShowInningEnd(false);
       setHistory([]);
       setStep("result"); setSelectedResult(null);
+      if (game.isHome) setShowOpponentTop(true);
     }
     setSaving(false);
   };
@@ -612,7 +740,9 @@ export function Scorebook({ game, teamName, teamColor }: ScoreboookProps) {
   const handleEndGame = async () => {
     setEnding(true); clearStorage();
     await endGame(game.id);
-    router.push("/schedule");
+    setEnding(false);
+    setConfirmEnd(false);
+    setGameOver(true);
   };
 
   const handleRestart = async () => {
@@ -691,7 +821,7 @@ export function Scorebook({ game, teamName, teamColor }: ScoreboookProps) {
               ))}
             </div>
           )}
-          <button onClick={async () => { await startGame(game.id); setGameStarted(true); }}
+          <button onClick={async () => { await startGame(game.id); setGameStarted(true); if (game.isHome) setShowOpponentTop(true); }}
             disabled={lineup.length === 0}
             style={{ width: "100%", padding: "18px 24px", borderRadius: 14, border: "none",
               background: lineup.length === 0 ? "rgba(255,255,255,0.06)" : teamColor,
@@ -699,6 +829,132 @@ export function Scorebook({ game, teamName, teamColor }: ScoreboookProps) {
               fontFamily: "var(--font-display)", fontSize: "1.4rem", fontWeight: 900,
               letterSpacing: "0.05em", cursor: lineup.length === 0 ? "default" : "pointer" }}>
             ⚡ START GAME
+          </button>
+        </div>
+      </div>
+    );
+  }
+
+  // ── Opponent top-half entry (home team only) ───────────────
+  if (showOpponentTop) {
+    const inningData = innings.find((i) => i.inningNumber === currentInning);
+    const oppRuns = inningData?.opponentRuns ?? 0;
+    return (
+      <div style={{ position: "fixed", inset: 0, zIndex: 200,
+        background: "rgba(5,5,14,0.97)", display: "flex",
+        flexDirection: "column", overflow: "hidden" }}>
+
+        {/* Header */}
+        <div style={{ background: "#0a0a1a", borderBottom: "1px solid rgba(255,255,255,0.07)",
+          padding: "14px 20px", flexShrink: 0 }}>
+          <div style={{ fontFamily: "var(--font-display)", fontSize: "0.7rem", fontWeight: 700,
+            letterSpacing: "0.2em", color: "rgba(238,238,245,0.4)", marginBottom: 2 }}>
+            INNING {currentInning} — TOP HALF
+          </div>
+          <div style={{ display: "flex", alignItems: "baseline", gap: 16 }}>
+            <span style={{ fontFamily: "var(--font-display)", fontWeight: 900,
+              fontSize: "2rem", color: teamColor }}>{teamTotal}</span>
+            <span style={{ fontFamily: "var(--font-display)", fontWeight: 400,
+              fontSize: "1rem", color: "rgba(238,238,245,0.3)" }}>–</span>
+            <span style={{ fontFamily: "var(--font-display)", fontWeight: 900,
+              fontSize: "2rem", color: "rgba(238,238,245,0.6)" }}>{opponentTotal}</span>
+          </div>
+        </div>
+
+        <div style={{ flex: 1, overflowY: "auto", padding: "20px 20px 0" }}>
+          <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 20, maxWidth: 720, margin: "0 auto" }}>
+
+            {/* Fielding positions */}
+            <div>
+              <div style={{ fontFamily: "var(--font-display)", fontSize: "0.65rem", fontWeight: 700,
+                letterSpacing: "0.15em", color: "rgba(238,238,245,0.35)", marginBottom: 10 }}>
+                YOUR LINEUP — INN {currentInning}
+              </div>
+              <div style={{ background: "rgba(255,255,255,0.03)",
+                border: "1px solid rgba(255,255,255,0.07)", borderRadius: 12, overflow: "hidden" }}>
+                {lineup.map((slot, i) => {
+                  const pos = getSlotPos(slot, currentInning);
+                  const posLabel = POS_SHORT[pos] ?? "—";
+                  const isSit = pos === "SIT";
+                  return (
+                    <div key={slot.playerId}
+                      style={{ display: "flex", alignItems: "center", gap: 10,
+                        padding: "9px 14px",
+                        borderBottom: i < lineup.length - 1 ? "1px solid rgba(255,255,255,0.05)" : "none",
+                        opacity: isSit ? 0.35 : 1 }}>
+                      <span style={{ fontFamily: "var(--font-display)", fontWeight: 900,
+                        fontSize: "0.9rem", color: teamColor, width: 18, textAlign: "center" }}>
+                        {i + 1}
+                      </span>
+                      <span style={{ fontFamily: "var(--font-mono)", fontSize: "0.7rem",
+                        color: "rgba(238,238,245,0.35)", width: 26 }}>
+                        #{slot.player.jerseyNumber ?? "—"}
+                      </span>
+                      <span style={{ flex: 1, fontSize: "0.85rem", fontWeight: 500,
+                        color: "#eeeef5", fontFamily: "var(--font-body)" }}>
+                        {slot.player.firstName} {slot.player.lastName}
+                      </span>
+                      <span style={{ fontFamily: "var(--font-mono)", fontSize: "0.75rem",
+                        fontWeight: 700, color: isSit ? "rgba(238,238,245,0.25)" : teamColor,
+                        background: isSit ? "rgba(255,255,255,0.04)" : `${teamColor}22`,
+                        padding: "2px 8px", borderRadius: 5 }}>
+                        {posLabel}
+                      </span>
+                    </div>
+                  );
+                })}
+              </div>
+            </div>
+
+            {/* Opponent run entry */}
+            <div>
+              <div style={{ fontFamily: "var(--font-display)", fontSize: "0.65rem", fontWeight: 700,
+                letterSpacing: "0.15em", color: "rgba(238,238,245,0.35)", marginBottom: 10 }}>
+                {game.opponent.toUpperCase()} — RUNS THIS INNING
+              </div>
+              <div style={{ background: "rgba(255,255,255,0.03)",
+                border: "1px solid rgba(255,255,255,0.07)", borderRadius: 12, padding: 20 }}>
+                <div style={{ display: "flex", alignItems: "center", gap: 16, justifyContent: "center",
+                  marginBottom: 16 }}>
+                  <button onClick={() => handleOpponentRuns(-1)}
+                    style={{ width: 56, height: 56, borderRadius: 12, border: "none",
+                      background: "rgba(255,255,255,0.08)", color: "#eeeef5",
+                      fontSize: "1.5rem", cursor: "pointer" }}>–</button>
+                  <span style={{ fontFamily: "var(--font-display)", fontSize: "4rem",
+                    fontWeight: 900, color: "rgba(238,238,245,0.8)", minWidth: 64,
+                    textAlign: "center", lineHeight: 1 }}>
+                    {oppRuns}
+                  </span>
+                  <button onClick={() => handleOpponentRuns(1)}
+                    style={{ width: 56, height: 56, borderRadius: 12, border: "none",
+                      background: "rgba(255,255,255,0.08)", color: "#eeeef5",
+                      fontSize: "1.5rem", cursor: "pointer" }}>+</button>
+                </div>
+                <div style={{ textAlign: "center", fontFamily: "var(--font-body)",
+                  fontSize: "0.75rem", color: "rgba(238,238,245,0.35)" }}>
+                  Total: {opponentTotal + oppRuns - (innings.find(i => i.inningNumber === currentInning)?.opponentRuns ?? 0)} runs
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        {/* Footer */}
+        <div style={{ padding: 20, flexShrink: 0, borderTop: "1px solid rgba(255,255,255,0.06)",
+          display: "flex", gap: 12, maxWidth: 720, margin: "0 auto", width: "100%" }}>
+          <button onClick={() => setConfirmEnd(true)}
+            style={{ padding: "16px 20px", borderRadius: 12, border: "1px solid rgba(255,61,61,0.3)",
+              background: "rgba(255,61,61,0.1)", color: "#ff3d3d",
+              fontFamily: "var(--font-display)", fontSize: "1rem",
+              fontWeight: 900, letterSpacing: "0.05em", cursor: "pointer", whiteSpace: "nowrap" }}>
+            END GAME
+          </button>
+          <button onClick={() => setShowOpponentTop(false)}
+            style={{ flex: 1, padding: "16px 24px", borderRadius: 12, border: "none",
+              background: teamColor, color: "#000",
+              fontFamily: "var(--font-display)", fontSize: "1.2rem",
+              fontWeight: 900, letterSpacing: "0.05em", cursor: "pointer" }}>
+            START OUR BATTING →
           </button>
         </div>
       </div>
@@ -714,6 +970,9 @@ export function Scorebook({ game, teamName, teamColor }: ScoreboookProps) {
       currentInning={currentInning}
       teamColor={teamColor}
       runners={runners}
+      positionOverrides={positionOverrides}
+      inningPositionOverrides={inningPositionOverrides}
+      onPositionChange={handlePositionChange}
     />
   );
   const logPanel = (
@@ -811,54 +1070,70 @@ export function Scorebook({ game, teamName, teamColor }: ScoreboookProps) {
             </tr>
           </thead>
           <tbody>
-            <tr>
-              <td style={{ fontFamily: "var(--font-display)", fontWeight: 800, fontSize: "0.75rem",
-                color: teamColor, paddingRight: 8, whiteSpace: "nowrap", overflow: "hidden",
-                maxWidth: 72, textOverflow: "ellipsis" }}>
-                {teamName.split(" ")[0]?.toUpperCase()}
-              </td>
-              {allInnings.map((n) => {
-                const inn = getInning(n);
-                return (
-                  <td key={n} style={{ textAlign: "center", fontFamily: "var(--font-mono)",
-                    fontSize: "0.9rem", fontWeight: n === currentInning ? 700 : 400,
-                    color: n === currentInning ? "#eeeef5" : "rgba(238,238,245,0.5)",
-                    background: n === currentInning ? "rgba(255,255,255,0.04)" : "transparent",
-                    borderRadius: 4, padding: "2px 0" }}>
-                    {inn ? inn.teamRuns : "·"}
+            {(() => {
+              const teamRow = (
+                <tr key="team">
+                  <td style={{ fontFamily: "var(--font-display)", fontWeight: 800, fontSize: "0.75rem",
+                    color: teamColor, paddingRight: 8, whiteSpace: "nowrap", overflow: "hidden",
+                    maxWidth: 72, textOverflow: "ellipsis" }}>
+                    {teamName.split(" ")[0]?.toUpperCase()}
+                    <span style={{ fontFamily: "var(--font-mono)", fontSize: "0.55rem",
+                      color: "rgba(238,238,245,0.3)", marginLeft: 4 }}>
+                      {game.isHome ? "H" : "A"}
+                    </span>
                   </td>
-                );
-              })}
-              <td style={{ textAlign: "center", fontFamily: "var(--font-display)", fontSize: "1.1rem",
-                fontWeight: 900, color: teamColor, paddingLeft: 8,
-                borderLeft: "1px solid rgba(255,255,255,0.08)" }}>{teamTotal}</td>
-              <td style={{ textAlign: "center", fontFamily: "var(--font-mono)",
-                fontSize: "0.9rem", color: "rgba(238,238,245,0.5)" }}>
-                {innings.reduce((s, i) => s + i.teamHits, 0)}
-              </td>
-            </tr>
-            <tr>
-              <td style={{ fontFamily: "var(--font-display)", fontWeight: 800, fontSize: "0.75rem",
-                color: "rgba(238,238,245,0.6)", paddingRight: 8, whiteSpace: "nowrap",
-                overflow: "hidden", maxWidth: 72, textOverflow: "ellipsis" }}>
-                {game.opponent.split(" ")[0]?.toUpperCase()}
-              </td>
-              {allInnings.map((n) => {
-                const inn = getInning(n);
-                return (
-                  <td key={n} style={{ textAlign: "center", fontFamily: "var(--font-mono)",
-                    fontSize: "0.9rem", color: "rgba(238,238,245,0.5)",
-                    background: n === currentInning ? "rgba(255,255,255,0.03)" : "transparent",
-                    borderRadius: 4, padding: "2px 0" }}>
-                    {inn ? inn.opponentRuns : "·"}
+                  {allInnings.map((n) => {
+                    const inn = getInning(n);
+                    return (
+                      <td key={n} style={{ textAlign: "center", fontFamily: "var(--font-mono)",
+                        fontSize: "0.9rem", fontWeight: n === currentInning ? 700 : 400,
+                        color: n === currentInning ? "#eeeef5" : "rgba(238,238,245,0.5)",
+                        background: n === currentInning ? "rgba(255,255,255,0.04)" : "transparent",
+                        borderRadius: 4, padding: "2px 0" }}>
+                        {inn ? inn.teamRuns : "·"}
+                      </td>
+                    );
+                  })}
+                  <td style={{ textAlign: "center", fontFamily: "var(--font-display)", fontSize: "1.1rem",
+                    fontWeight: 900, color: teamColor, paddingLeft: 8,
+                    borderLeft: "1px solid rgba(255,255,255,0.08)" }}>{teamTotal}</td>
+                  <td style={{ textAlign: "center", fontFamily: "var(--font-mono)",
+                    fontSize: "0.9rem", color: "rgba(238,238,245,0.5)" }}>
+                    {innings.reduce((s, i) => s + i.teamHits, 0)}
                   </td>
-                );
-              })}
-              <td style={{ textAlign: "center", fontFamily: "var(--font-display)", fontSize: "1.1rem",
-                fontWeight: 900, color: "rgba(238,238,245,0.6)", paddingLeft: 8,
-                borderLeft: "1px solid rgba(255,255,255,0.08)" }}>{opponentTotal}</td>
-              <td />
-            </tr>
+                </tr>
+              );
+              const opponentRow = (
+                <tr key="opp">
+                  <td style={{ fontFamily: "var(--font-display)", fontWeight: 800, fontSize: "0.75rem",
+                    color: "rgba(238,238,245,0.6)", paddingRight: 8, whiteSpace: "nowrap",
+                    overflow: "hidden", maxWidth: 72, textOverflow: "ellipsis" }}>
+                    {game.opponent.split(" ")[0]?.toUpperCase()}
+                    <span style={{ fontFamily: "var(--font-mono)", fontSize: "0.55rem",
+                      color: "rgba(238,238,245,0.3)", marginLeft: 4 }}>
+                      {game.isHome ? "A" : "H"}
+                    </span>
+                  </td>
+                  {allInnings.map((n) => {
+                    const inn = getInning(n);
+                    return (
+                      <td key={n} style={{ textAlign: "center", fontFamily: "var(--font-mono)",
+                        fontSize: "0.9rem", color: "rgba(238,238,245,0.5)",
+                        background: n === currentInning ? "rgba(255,255,255,0.03)" : "transparent",
+                        borderRadius: 4, padding: "2px 0" }}>
+                        {inn ? inn.opponentRuns : "·"}
+                      </td>
+                    );
+                  })}
+                  <td style={{ textAlign: "center", fontFamily: "var(--font-display)", fontSize: "1.1rem",
+                    fontWeight: 900, color: "rgba(238,238,245,0.6)", paddingLeft: 8,
+                    borderLeft: "1px solid rgba(255,255,255,0.08)" }}>{opponentTotal}</td>
+                  <td />
+                </tr>
+              );
+              // Home team always on bottom row (standard baseball scoreboard)
+              return game.isHome ? [opponentRow, teamRow] : [teamRow, opponentRow];
+            })()}
           </tbody>
         </table>
       </div>
@@ -898,7 +1173,7 @@ export function Scorebook({ game, teamName, teamColor }: ScoreboookProps) {
                 <div style={{ background: "rgba(255,255,255,0.03)",
                   border: "1px solid rgba(255,255,255,0.07)", borderRadius: 12, overflow: "hidden" }}>
                   {lineup.map((slot, i) => {
-                    const pos = slot.inningPositions?.[currentInning] ?? slot.fieldingPosition;
+                    const pos = getSlotPos(slot, currentInning);
                     const posLabel = POS_SHORT[pos] ?? "—";
                     const isSit = pos === "SIT";
                     return (
@@ -937,33 +1212,49 @@ export function Scorebook({ game, teamName, teamColor }: ScoreboookProps) {
                   letterSpacing: "0.15em", color: "rgba(238,238,245,0.35)", marginBottom: 10 }}>
                   {game.opponent.toUpperCase()} — RUNS THIS INNING
                 </div>
-                <div style={{ background: "rgba(255,255,255,0.03)",
-                  border: "1px solid rgba(255,255,255,0.07)", borderRadius: 12, padding: 20 }}>
-                  <div style={{ display: "flex", alignItems: "center", gap: 16, justifyContent: "center",
-                    marginBottom: 16 }}>
-                    <button onClick={() => handleOpponentRuns(-1)}
-                      style={{ width: 56, height: 56, borderRadius: 12, border: "none",
-                        background: "rgba(255,255,255,0.08)", color: "#eeeef5",
-                        fontSize: "1.5rem", cursor: "pointer" }}>
-                      –
-                    </button>
+                {game.isHome ? (
+                  /* Read-only for home team — runs already entered at top-half screen */
+                  <div style={{ background: "rgba(255,255,255,0.03)",
+                    border: "1px solid rgba(255,255,255,0.07)", borderRadius: 12, padding: 20,
+                    display: "flex", flexDirection: "column", alignItems: "center", gap: 8 }}>
                     <span style={{ fontFamily: "var(--font-display)", fontSize: "4rem",
-                      fontWeight: 900, color: "rgba(238,238,245,0.8)", minWidth: 64, textAlign: "center",
-                      lineHeight: 1 }}>
+                      fontWeight: 900, color: "rgba(238,238,245,0.8)", lineHeight: 1 }}>
                       {currentInningData.opponentRuns}
                     </span>
-                    <button onClick={() => handleOpponentRuns(1)}
-                      style={{ width: 56, height: 56, borderRadius: 12, border: "none",
-                        background: "rgba(255,255,255,0.08)", color: "#eeeef5",
-                        fontSize: "1.5rem", cursor: "pointer" }}>
-                      +
-                    </button>
+                    <div style={{ fontFamily: "var(--font-body)", fontSize: "0.75rem",
+                      color: "rgba(238,238,245,0.35)" }}>
+                      Total: {opponentTotal} runs
+                    </div>
                   </div>
-                  <div style={{ textAlign: "center", fontFamily: "var(--font-body)",
-                    fontSize: "0.75rem", color: "rgba(238,238,245,0.35)" }}>
-                    Total: {opponentTotal} runs
+                ) : (
+                  <div style={{ background: "rgba(255,255,255,0.03)",
+                    border: "1px solid rgba(255,255,255,0.07)", borderRadius: 12, padding: 20 }}>
+                    <div style={{ display: "flex", alignItems: "center", gap: 16, justifyContent: "center",
+                      marginBottom: 16 }}>
+                      <button onClick={() => handleOpponentRuns(-1)}
+                        style={{ width: 56, height: 56, borderRadius: 12, border: "none",
+                          background: "rgba(255,255,255,0.08)", color: "#eeeef5",
+                          fontSize: "1.5rem", cursor: "pointer" }}>
+                        –
+                      </button>
+                      <span style={{ fontFamily: "var(--font-display)", fontSize: "4rem",
+                        fontWeight: 900, color: "rgba(238,238,245,0.8)", minWidth: 64, textAlign: "center",
+                        lineHeight: 1 }}>
+                        {currentInningData.opponentRuns}
+                      </span>
+                      <button onClick={() => handleOpponentRuns(1)}
+                        style={{ width: 56, height: 56, borderRadius: 12, border: "none",
+                          background: "rgba(255,255,255,0.08)", color: "#eeeef5",
+                          fontSize: "1.5rem", cursor: "pointer" }}>
+                        +
+                      </button>
+                    </div>
+                    <div style={{ textAlign: "center", fontFamily: "var(--font-body)",
+                      fontSize: "0.75rem", color: "rgba(238,238,245,0.35)" }}>
+                      Total: {opponentTotal} runs
+                    </div>
                   </div>
-                </div>
+                )}
 
                 {/* Inning summary */}
                 <div style={{ marginTop: 16, background: "rgba(255,255,255,0.03)",
@@ -1058,7 +1349,7 @@ export function Scorebook({ game, teamName, teamColor }: ScoreboookProps) {
                   fontFamily: "var(--font-mono)", marginTop: 2 }}>
                   #{currentBatter.player.jerseyNumber ?? "—"} · AB #{(atBatCounts[currentBatter.playerId] ?? 0) + 1}
                   {" · "}
-                  {POS_SHORT[currentBatter.inningPositions?.[currentInning] ?? currentBatter.fieldingPosition] ?? "—"}
+                  {POS_SHORT[getSlotPos(currentBatter, currentInning)] ?? "—"}
                 </div>
               </div>
               <div style={{ display: "flex", gap: 4 }}>
@@ -1486,6 +1777,160 @@ export function Scorebook({ game, teamName, teamColor }: ScoreboookProps) {
           </div>
         </div>
       )}
+
+      {/* ── Game Over screen ──────────────────────────────────────── */}
+      {gameOver && (() => {
+        const won = teamTotal > opponentTotal;
+        const lost = teamTotal < opponentTotal;
+
+        // Compute per-player game stats from plate appearances
+        // runs are attributed by scoredRunnerIds across all PAs, not just the batter's own PA
+        const runsByPlayer = new Map<string, number>();
+        for (const pa of plateAppearances) {
+          for (const runnerId of (pa.scoredRunnerIds ?? [])) {
+            runsByPlayer.set(runnerId, (runsByPlayer.get(runnerId) ?? 0) + 1);
+          }
+        }
+
+        const gameStats = lineup.map((slot) => {
+          const pas = plateAppearances.filter((pa) => pa.playerId === slot.playerId);
+          let ab = 0, hits = 0, doubles = 0, triples = 0, hrs = 0, rbi = 0, walks = 0, ks = 0;
+          for (const pa of pas) {
+            const isAB = !["WALK","HIT_BY_PITCH","SAC_FLY","SAC_BUNT"].includes(pa.result);
+            if (isAB) ab++;
+            if (["SINGLE","DOUBLE","TRIPLE","HOME_RUN"].includes(pa.result)) hits++;
+            if (pa.result === "DOUBLE") doubles++;
+            if (pa.result === "TRIPLE") triples++;
+            if (pa.result === "HOME_RUN") hrs++;
+            rbi += pa.rbis;
+            if (pa.result === "WALK" || pa.result === "HIT_BY_PITCH") walks++;
+            if (pa.result === "STRIKEOUT") ks++;
+          }
+          const runs = runsByPlayer.get(slot.playerId) ?? 0;
+          const avg = ab > 0 ? (hits / ab).toFixed(3).replace(/^0/, "") : "—";
+          return { slot, ab, hits, doubles, triples, hrs, rbi, runs, walks, ks, avg };
+        });
+
+        const fmtStat = (n: number) => n > 0 ? String(n) : <span style={{ color: "rgba(238,238,245,0.2)" }}>0</span>;
+
+        return (
+          <div style={{ position: "fixed", inset: 0, zIndex: 400,
+            background: "#05050e", display: "flex", flexDirection: "column", overflow: "hidden" }}>
+
+            {/* Header */}
+            <div style={{ background: "#0a0a1a", borderBottom: "1px solid rgba(255,255,255,0.07)",
+              padding: "20px 24px", flexShrink: 0, textAlign: "center" }}>
+              <div style={{ fontFamily: "var(--font-display)", fontSize: "0.7rem", fontWeight: 700,
+                letterSpacing: "0.25em", marginBottom: 8,
+                color: won ? teamColor : lost ? "#ff3d3d" : "rgba(238,238,245,0.4)" }}>
+                {won ? "▲ VICTORY" : lost ? "▼ DEFEAT" : "FINAL · TIE"}
+              </div>
+              <div style={{ display: "flex", alignItems: "center", justifyContent: "center", gap: 24, marginBottom: 6 }}>
+                <div style={{ textAlign: "right" }}>
+                  <div style={{ fontFamily: "var(--font-display)", fontSize: "0.75rem", fontWeight: 700,
+                    color: teamColor, letterSpacing: "0.1em" }}>
+                    {teamName.toUpperCase()}
+                  </div>
+                  <div style={{ fontFamily: "var(--font-display)", fontSize: "4rem",
+                    fontWeight: 900, color: teamColor, lineHeight: 1 }}>
+                    {teamTotal}
+                  </div>
+                </div>
+                <div style={{ fontFamily: "var(--font-display)", fontSize: "1.5rem",
+                  color: "rgba(238,238,245,0.2)", fontWeight: 400 }}>–</div>
+                <div style={{ textAlign: "left" }}>
+                  <div style={{ fontFamily: "var(--font-display)", fontSize: "0.75rem", fontWeight: 700,
+                    color: "rgba(238,238,245,0.5)", letterSpacing: "0.1em" }}>
+                    {game.opponent.toUpperCase()}
+                  </div>
+                  <div style={{ fontFamily: "var(--font-display)", fontSize: "4rem",
+                    fontWeight: 900, color: "rgba(238,238,245,0.5)", lineHeight: 1 }}>
+                    {opponentTotal}
+                  </div>
+                </div>
+              </div>
+              <div style={{ fontFamily: "var(--font-mono)", fontSize: "0.7rem",
+                color: "rgba(238,238,245,0.3)" }}>
+                {innings.reduce((s, i) => s + i.teamHits, 0)} H · {innings.length} INN
+              </div>
+            </div>
+
+            {/* Stats table */}
+            <div style={{ flex: 1, overflowY: "auto", padding: "16px 16px 0" }}>
+              <div style={{ maxWidth: 800, margin: "0 auto" }}>
+                <div style={{ fontFamily: "var(--font-display)", fontSize: "0.65rem", fontWeight: 700,
+                  letterSpacing: "0.15em", color: "rgba(238,238,245,0.35)", marginBottom: 10 }}>
+                  PLAYER STATS — THIS GAME
+                </div>
+                <div style={{ background: "rgba(255,255,255,0.02)",
+                  border: "1px solid rgba(255,255,255,0.07)", borderRadius: 12, overflow: "hidden" }}>
+                  <div style={{ overflowX: "auto" }}>
+                    <table style={{ width: "100%", borderCollapse: "collapse", minWidth: 560 }}>
+                      <thead>
+                        <tr style={{ borderBottom: "1px solid rgba(255,255,255,0.07)",
+                          background: "rgba(255,255,255,0.03)" }}>
+                          {["#","Player","AB","H","2B","3B","HR","RBI","R","BB","K","AVG"].map((h) => (
+                            <th key={h} style={{
+                              padding: "8px 10px",
+                              fontFamily: "var(--font-body)", fontSize: "0.6rem", fontWeight: 700,
+                              letterSpacing: "0.1em", textTransform: "uppercase",
+                              color: "rgba(238,238,245,0.35)",
+                              textAlign: h === "Player" ? "left" : "center",
+                              whiteSpace: "nowrap",
+                            }}>{h}</th>
+                          ))}
+                        </tr>
+                      </thead>
+                      <tbody>
+                        {gameStats.map(({ slot, ab, hits, doubles, triples, hrs, rbi, runs, walks, ks, avg }) => (
+                          <tr key={slot.playerId}
+                            style={{ borderBottom: "1px solid rgba(255,255,255,0.04)" }}>
+                            <td style={{ padding: "9px 10px", textAlign: "center",
+                              fontFamily: "var(--font-mono)", fontSize: "0.75rem",
+                              color: "rgba(238,238,245,0.35)" }}>
+                              {slot.player.jerseyNumber ?? "—"}
+                            </td>
+                            <td style={{ padding: "9px 10px", whiteSpace: "nowrap",
+                              fontFamily: "var(--font-body)", fontSize: "0.85rem",
+                              fontWeight: 600, color: "#eeeef5" }}>
+                              {slot.player.firstName} {slot.player.lastName}
+                            </td>
+                            {[ab, hits, doubles, triples, hrs, rbi, runs, walks, ks].map((v, i) => (
+                              <td key={i} style={{ padding: "9px 10px", textAlign: "center",
+                                fontFamily: "var(--font-mono)", fontSize: "0.85rem",
+                                color: "rgba(238,238,245,0.7)" }}>
+                                {fmtStat(v)}
+                              </td>
+                            ))}
+                            <td style={{ padding: "9px 10px", textAlign: "center",
+                              fontFamily: "var(--font-mono)", fontSize: "0.85rem",
+                              fontWeight: avg !== "—" ? 700 : 400,
+                              color: avg !== "—" ? teamColor : "rgba(238,238,245,0.2)" }}>
+                              {avg}
+                            </td>
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            {/* Footer */}
+            <div style={{ padding: 20, flexShrink: 0, borderTop: "1px solid rgba(255,255,255,0.06)" }}>
+              <button onClick={() => router.push("/schedule")}
+                style={{ width: "100%", maxWidth: 800, display: "block", margin: "0 auto",
+                  padding: "16px 24px", borderRadius: 14, border: "none",
+                  background: teamColor, color: "#000",
+                  fontFamily: "var(--font-display)", fontSize: "1.1rem",
+                  fontWeight: 900, letterSpacing: "0.05em", cursor: "pointer" }}>
+                BACK TO SCHEDULE
+              </button>
+            </div>
+          </div>
+        );
+      })()}
     </div>
   );
 }

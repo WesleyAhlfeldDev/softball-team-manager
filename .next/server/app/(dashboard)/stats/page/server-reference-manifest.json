@@ -1,0 +1,35 @@
+{
+  "node": {
+    "0053ff2007c793bfa3229e81bce3774d543411ef21": {
+      "workers": {
+        "app/(dashboard)/stats/page": {
+          "moduleId": "[project]/.next-internal/server/app/(dashboard)/stats/page/actions.js { ACTIONS_MODULE0 => \"[project]/src/server/actions/seasons.ts [app-rsc] (ecmascript)\" } [app-rsc] (server actions loader, ecmascript)",
+          "async": false,
+          "exportedName": "seedRandomStats",
+          "filename": "src/server/actions/seasons.ts"
+        }
+      },
+      "layer": {
+        "app/(dashboard)/stats/page": "action-browser"
+      },
+      "exportedName": "seedRandomStats",
+      "filename": "src/server/actions/seasons.ts"
+    },
+    "00167e8aa98abb852d82a5ecb889e7d1ca96738584": {
+      "workers": {
+        "app/(dashboard)/stats/page": {
+          "moduleId": "[project]/.next-internal/server/app/(dashboard)/stats/page/actions.js { ACTIONS_MODULE0 => \"[project]/src/server/actions/seasons.ts [app-rsc] (ecmascript)\" } [app-rsc] (server actions loader, ecmascript)",
+          "async": false,
+          "exportedName": "clearStats",
+          "filename": "src/server/actions/seasons.ts"
+        }
+      },
+      "layer": {
+        "app/(dashboard)/stats/page": "action-browser"
+      },
+      "exportedName": "clearStats",
+      "filename": "src/server/actions/seasons.ts"
+    }
+  },
+  "edge": {}
+}

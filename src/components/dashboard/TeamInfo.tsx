@@ -11,7 +11,6 @@ import { saveTeamInfo } from "@/server/actions/team";
 interface TeamInfoProps {
   initialData: {
     name: string;
-    season: string;
     league: string | null;
     homeField: string | null;
     teamColor: string | null;
@@ -77,7 +76,6 @@ export function TeamInfo({ initialData }: TeamInfoProps) {
         style={{ background: "none", border: "none", cursor: "pointer", padding: 0 }}
       >
         <div className="flex items-center gap-3">
-          {/* Logo or icon */}
           {logoPreview ? (
             <img src={logoPreview} alt="Team logo"
               style={{ width: 36, height: 36, borderRadius: 8, objectFit: "cover",
@@ -97,8 +95,7 @@ export function TeamInfo({ initialData }: TeamInfoProps) {
             </div>
             <div style={{ fontSize: "0.75rem", color: "var(--color-text-muted)",
               fontFamily: "var(--font-body)", textAlign: "left", marginTop: 2 }}>
-              {initialData.season}
-              {initialData.league && ` · ${initialData.league}`}
+              {initialData.league && `${initialData.league}`}
               {initialData.homeField && ` · ${initialData.homeField}`}
             </div>
           </div>
@@ -118,14 +115,6 @@ export function TeamInfo({ initialData }: TeamInfoProps) {
               <input id="name" name="name" className="input"
                 defaultValue={initialData.name}
                 placeholder="e.g. Thunder Sluggers" required />
-            </div>
-
-            {/* Season */}
-            <div>
-              <label className="field-label" htmlFor="season">Season</label>
-              <input id="season" name="season" className="input"
-                defaultValue={initialData.season}
-                placeholder="e.g. Spring 2025" required />
             </div>
 
             {/* League */}
@@ -164,7 +153,6 @@ export function TeamInfo({ initialData }: TeamInfoProps) {
                   }}
                 />
               ))}
-              {/* Custom color input */}
               <div className="flex items-center gap-2">
                 <input
                   type="color"
@@ -185,7 +173,6 @@ export function TeamInfo({ initialData }: TeamInfoProps) {
           <div className="mt-4">
             <div className="field-label mb-2">Team Logo</div>
             <div className="flex items-center gap-4">
-              {/* Preview */}
               {logoPreview ? (
                 <div className="relative">
                   <img src={logoPreview} alt="Logo preview"
