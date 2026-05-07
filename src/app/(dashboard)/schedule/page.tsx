@@ -6,6 +6,8 @@ import { AddGameForm } from "@/components/schedule/AddGameForm";
 import { GameCard } from "@/components/schedule/GameCard";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import { faCalendarDays } from "@fortawesome/free-solid-svg-icons";
+import { FinishSeasonButton } from "@/components/schedule/FinishSeasonButton";
+import { ResetSeasonButton } from "@/components/schedule/ResetSeasonButton";
 
 export const metadata = { title: "Schedule" };
 
@@ -17,21 +19,30 @@ export default async function SchedulePage() {
   const team = await prisma.team.findFirst({
     where: { userId },
     include: {
-      games: { orderBy: { gameDate: "asc" } },
-      teamStats: true,
+      seasons: {
+        where: { isActive: true },
+        select: {
+          id: true, name: true, isActive: true, isFinished: true, createdAt: true,
+          games:     { orderBy: { gameDate: "asc" } },
+          teamStats: true,
+        },
+      },
     },
   });
 
   if (!team) redirect("/login");
 
+  const activeSeason = team.seasons[0];
+  const games = activeSeason?.games ?? [];
+
   const now = new Date();
-  const upcoming = team.games.filter(
+  const upcoming = games.filter(
     (g) => g.status === "SCHEDULED" || g.status === "IN_PROGRESS" || new Date(g.gameDate) >= now
   );
-  const past = team.games.filter(
+  const past = games.filter(
     (g) => g.status === "FINAL" || g.status === "POSTPONED" ||
       g.status === "CANCELLED" || g.status === "FORFEIT"
-  ).reverse(); // Most recent first
+  ).reverse();
 
   const wins   = past.filter((g) => g.status === "FINAL" && g.teamRuns > g.opponentRuns).length;
   const losses = past.filter((g) => g.status === "FINAL" && g.teamRuns < g.opponentRuns).length;
@@ -40,9 +51,9 @@ export default async function SchedulePage() {
   return (
     <div>
       <PageHeader
-        eyebrow="Season"
+        eyebrow={activeSeason?.name ?? "Season"}
         title="Schedule"
-        subtitle={past.length > 0 ? `${wins}W – ${losses}L${ties > 0 ? ` – ${ties}T` : ""} · ${upcoming.length} games remaining` : `${team.games.length} games scheduled`}
+        subtitle={past.length > 0 ? `${wins}W – ${losses}L${ties > 0 ? ` – ${ties}T` : ""} · ${upcoming.length} games remaining` : `${games.length} games scheduled`}
         action={<AddGameForm />}
       />
 
@@ -69,13 +80,25 @@ export default async function SchedulePage() {
       )}
 
       {/* Empty state */}
-      {team.games.length === 0 && (
+      {games.length === 0 && (
         <div className="card flex flex-col items-center gap-3 py-16 text-center">
           <FontAwesomeIcon icon={faCalendarDays}
             style={{ width: 32, height: 32, color: "var(--color-text-muted)" }} />
           <p style={{ color: "var(--color-text-muted)", margin: 0 }}>
             No games scheduled yet. Add your first game above!
           </p>
+        </div>
+      )}
+
+      {/* Finish season CTA — shown when all games are done */}
+      {activeSeason && !activeSeason.isFinished && games.length > 0 && upcoming.length === 0 && (
+        <FinishSeasonButton />
+      )}
+
+      {/* Reset season — always available while season is active */}
+      {activeSeason && !activeSeason.isFinished && (
+        <div className="mt-8">
+          <ResetSeasonButton />
         </div>
       )}
 

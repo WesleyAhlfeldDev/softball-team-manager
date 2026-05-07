@@ -28,7 +28,7 @@ interface Player {
   positions: FieldingPosition[];
   isActive: boolean;
   notes: string | null;
-  playerStats: { battingAvg: number | null; ops: number | null } | null;
+  playerStats: { battingAvg: number | null; ops: number | null }[];
 }
 
 export function PlayerRow({ player }: { player: Player }) {
@@ -106,8 +106,8 @@ export function PlayerRow({ player }: { player: Player }) {
 
       {/* AVG */}
       <td className="px-4 py-3 text-center">
-        <span style={{ fontFamily: "var(--font-mono)", fontSize: "0.875rem", color: player.playerStats?.battingAvg ? "#00e87a" : "#eeeef5" }}>
-          {player.playerStats?.battingAvg
+        <span style={{ fontFamily: "var(--font-mono)", fontSize: "0.875rem", color: player.playerStats[0]?.battingAvg ? "#00e87a" : "#eeeef5" }}>
+          {player.playerStats[0]?.battingAvg
             ? `.${String(Math.round(player.playerStats.battingAvg * 1000)).padStart(3, "0")}`
             : ".000"}
         </span>
@@ -115,8 +115,8 @@ export function PlayerRow({ player }: { player: Player }) {
 
       {/* OPS */}
       <td className="px-4 py-3 text-center">
-        <span style={{ fontFamily: "var(--font-mono)", fontSize: "0.875rem", color: player.playerStats?.ops ? "#00e87a" : "#eeeef5" }}>
-          {player.playerStats?.ops?.toFixed(3) ?? ".000"}
+        <span style={{ fontFamily: "var(--font-mono)", fontSize: "0.875rem", color: player.playerStats[0]?.ops ? "#00e87a" : "#eeeef5" }}>
+          {player.playerStats[0]?.ops?.toFixed(3) ?? ".000"}
         </span>
       </td>
 

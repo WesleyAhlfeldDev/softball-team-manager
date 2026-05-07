@@ -4,6 +4,7 @@ import { prisma } from "@/lib/db";
 import { PageHeader } from "@/components/layout/PageHeader";
 import { LeagueSettings } from "@/components/dashboard/LeagueSettings";
 import { TeamInfo } from "@/components/dashboard/TeamInfo";
+import { SeasonManager } from "@/components/dashboard/SeasonManager";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import {
   faUsers, faCalendarDays, faListOl,
@@ -22,15 +23,22 @@ export default async function DashboardPage() {
   const team = await prisma.team.findFirst({
     where: { userId },
     include: {
-      players:   { where: { isActive: true } },
-      games:     { orderBy: { gameDate: "asc" } },
-      teamStats: true,
+      players: { where: { isActive: true } },
+      seasons: {
+        orderBy: { createdAt: "desc" },
+        include: {
+          games:    { orderBy: { gameDate: "asc" } },
+          teamStats: true,
+        },
+      },
     },
   });
 
   if (!team) redirect("/login");
 
-  // Parse league rules
+  const activeSeason = team.seasons.find((s) => s.isActive) ?? team.seasons[0];
+  const games = activeSeason?.games ?? [];
+
   let leagueRules: LeagueRules = DEFAULT_LEAGUE_RULES;
   if (team.leagueRules) {
     try {
@@ -40,10 +48,10 @@ export default async function DashboardPage() {
     }
   }
 
-  const upcomingGames = team.games.filter((g) => g.status === "SCHEDULED");
+  const upcomingGames = games.filter((g) => g.status === "SCHEDULED");
   const nextGame      = upcomingGames[0];
-  const wins   = team.games.filter((g) => g.status === "FINAL" && g.teamRuns > g.opponentRuns).length;
-  const losses = team.games.filter((g) => g.status === "FINAL" && g.teamRuns < g.opponentRuns).length;
+  const wins   = games.filter((g) => g.status === "FINAL" && g.teamRuns > g.opponentRuns).length;
+  const losses = games.filter((g) => g.status === "FINAL" && g.teamRuns < g.opponentRuns).length;
 
   const teamColor = team.teamColor ?? "#00e87a";
 
@@ -52,7 +60,7 @@ export default async function DashboardPage() {
       <PageHeader
         eyebrow="Welcome back, Coach"
         title={team.name || "Dashboard"}
-        subtitle={`${team.season}${team.league ? ` · ${team.league}` : ""}`}
+        subtitle={`${activeSeason?.name ?? "No season"}${team.league ? ` · ${team.league}` : ""}`}
       />
 
       {/* Stat cards */}
@@ -150,11 +158,19 @@ export default async function DashboardPage() {
         </div>
       )}
 
+      {/* Season Manager */}
+      <SeasonManager seasons={team.seasons.map((s) => ({
+        id: s.id,
+        name: s.name,
+        isActive: s.isActive,
+        isFinished: s.isFinished,
+        createdAt: s.createdAt,
+      }))} />
+
       {/* Team Info */}
       <TeamInfo
         initialData={{
           name:      team.name,
-          season:    team.season,
           league:    team.league,
           homeField: team.homeField,
           teamColor: team.teamColor,

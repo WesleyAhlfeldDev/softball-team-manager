@@ -1,0 +1,35 @@
+{
+  "node": {
+    "400e0dc06da23cc798e5561c2075215cf0a6ccffc8": {
+      "workers": {
+        "app/(dashboard)/lineup/page": {
+          "moduleId": "[project]/.next-internal/server/app/(dashboard)/lineup/page/actions.js { ACTIONS_MODULE0 => \"[project]/src/server/actions/lineup.ts [app-rsc] (ecmascript)\" } [app-rsc] (server actions loader, ecmascript)",
+          "async": false,
+          "exportedName": "saveDefaultLineup",
+          "filename": "src/server/actions/lineup.ts"
+        }
+      },
+      "layer": {
+        "app/(dashboard)/lineup/page": "action-browser"
+      },
+      "exportedName": "saveDefaultLineup",
+      "filename": "src/server/actions/lineup.ts"
+    },
+    "60e408630258b69329dc10aabfd681628d7d6677a2": {
+      "workers": {
+        "app/(dashboard)/lineup/page": {
+          "moduleId": "[project]/.next-internal/server/app/(dashboard)/lineup/page/actions.js { ACTIONS_MODULE0 => \"[project]/src/server/actions/lineup.ts [app-rsc] (ecmascript)\" } [app-rsc] (server actions loader, ecmascript)",
+          "async": false,
+          "exportedName": "applyLineupToGame",
+          "filename": "src/server/actions/lineup.ts"
+        }
+      },
+      "layer": {
+        "app/(dashboard)/lineup/page": "action-browser"
+      },
+      "exportedName": "applyLineupToGame",
+      "filename": "src/server/actions/lineup.ts"
+    }
+  },
+  "edge": {}
+}

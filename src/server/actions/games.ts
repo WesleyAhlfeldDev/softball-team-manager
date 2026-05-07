@@ -16,6 +16,22 @@ const gameSchema = z.object({
   notes:        z.string().max(500).optional(),
 });
 
+async function getTeamContext() {
+  const session = await auth();
+  if (!session?.user?.id) throw new Error("Unauthorized");
+  const team = await prisma.team.findFirst({
+    where: { userId: session.user.id },
+    select: {
+      id: true,
+      seasons: { where: { isActive: true }, select: { id: true } },
+    },
+  });
+  if (!team) throw new Error("No team found");
+  const activeSeasonId = team.seasons[0]?.id;
+  if (!activeSeasonId) throw new Error("No active season — create a season first");
+  return { teamId: team.id, activeSeasonId };
+}
+
 async function getTeamId() {
   const session = await auth();
   if (!session?.user?.id) throw new Error("Unauthorized");
@@ -28,7 +44,7 @@ async function getTeamId() {
 }
 
 export async function addGame(formData: FormData) {
-  const teamId = await getTeamId();
+  const { teamId, activeSeasonId } = await getTeamContext();
 
   const parsed = gameSchema.safeParse({
     opponent:     formData.get("opponent"),
@@ -44,7 +60,6 @@ export async function addGame(formData: FormData) {
     return { error: parsed.error.errors[0]?.message ?? "Invalid data" };
   }
 
-  // Combine date + time into a DateTime
   const { gameDate, gameTime, ...rest } = parsed.data;
   const dateTimeStr = gameTime
     ? `${gameDate}T${gameTime}:00`
@@ -53,7 +68,9 @@ export async function addGame(formData: FormData) {
 
   await prisma.game.create({
     data: {
-      teamId, gameDate: gameDateObj,
+      teamId,
+      seasonId: activeSeasonId,
+      gameDate: gameDateObj,
       opponent: rest.opponent, isHome: rest.isHome, totalInnings: rest.totalInnings,
       location: rest.location ?? null, notes: rest.notes ?? null,
     },
@@ -145,12 +162,20 @@ export async function logGameScore(
     },
   });
 
-  // Update team season stats W/L
   const won  = teamRuns > opponentRuns;
   const lost = teamRuns < opponentRuns;
-  await prisma.teamSeasonStats.updateMany({
-    where: { teamId },
-    data: {
+
+  await prisma.teamSeasonStats.upsert({
+    where: { seasonId: game.seasonId },
+    create: {
+      seasonId:    game.seasonId,
+      wins:        won  ? 1 : 0,
+      losses:      lost ? 1 : 0,
+      runsScored:  teamRuns,
+      runsAllowed: opponentRuns,
+      runDiff:     teamRuns - opponentRuns,
+    },
+    update: {
       ...(won  && { wins:   { increment: 1 } }),
       ...(lost && { losses: { increment: 1 } }),
       runsScored:  { increment: teamRuns },

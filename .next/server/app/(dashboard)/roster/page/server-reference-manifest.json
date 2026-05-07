@@ -1,0 +1,65 @@
+{
+  "node": {
+    "402cae885999d9f5fe8e4b3f48ada740fd4d6cb30c": {
+      "workers": {
+        "app/(dashboard)/roster/page": {
+          "moduleId": "[project]/.next-internal/server/app/(dashboard)/roster/page/actions.js { ACTIONS_MODULE0 => \"[project]/src/server/actions/players.ts [app-rsc] (ecmascript)\" } [app-rsc] (server actions loader, ecmascript)",
+          "async": false,
+          "exportedName": "addPlayer",
+          "filename": "src/server/actions/players.ts"
+        }
+      },
+      "layer": {
+        "app/(dashboard)/roster/page": "action-browser"
+      },
+      "exportedName": "addPlayer",
+      "filename": "src/server/actions/players.ts"
+    },
+    "60d2a4282d1ed77afb21aabec5e0578fbdf18f502e": {
+      "workers": {
+        "app/(dashboard)/roster/page": {
+          "moduleId": "[project]/.next-internal/server/app/(dashboard)/roster/page/actions.js { ACTIONS_MODULE0 => \"[project]/src/server/actions/players.ts [app-rsc] (ecmascript)\" } [app-rsc] (server actions loader, ecmascript)",
+          "async": false,
+          "exportedName": "updatePlayer",
+          "filename": "src/server/actions/players.ts"
+        }
+      },
+      "layer": {
+        "app/(dashboard)/roster/page": "action-browser"
+      },
+      "exportedName": "updatePlayer",
+      "filename": "src/server/actions/players.ts"
+    },
+    "60a259275d40905dfc367e5a0cdb3ae5e70e7f76f7": {
+      "workers": {
+        "app/(dashboard)/roster/page": {
+          "moduleId": "[project]/.next-internal/server/app/(dashboard)/roster/page/actions.js { ACTIONS_MODULE0 => \"[project]/src/server/actions/players.ts [app-rsc] (ecmascript)\" } [app-rsc] (server actions loader, ecmascript)",
+          "async": false,
+          "exportedName": "togglePlayerActive",
+          "filename": "src/server/actions/players.ts"
+        }
+      },
+      "layer": {
+        "app/(dashboard)/roster/page": "action-browser"
+      },
+      "exportedName": "togglePlayerActive",
+      "filename": "src/server/actions/players.ts"
+    },
+    "409bc198f31686a547aab1880f442a5ec05784dcf6": {
+      "workers": {
+        "app/(dashboard)/roster/page": {
+          "moduleId": "[project]/.next-internal/server/app/(dashboard)/roster/page/actions.js { ACTIONS_MODULE0 => \"[project]/src/server/actions/players.ts [app-rsc] (ecmascript)\" } [app-rsc] (server actions loader, ecmascript)",
+          "async": false,
+          "exportedName": "deletePlayer",
+          "filename": "src/server/actions/players.ts"
+        }
+      },
+      "layer": {
+        "app/(dashboard)/roster/page": "action-browser"
+      },
+      "exportedName": "deletePlayer",
+      "filename": "src/server/actions/players.ts"
+    }
+  },
+  "edge": {}
+}

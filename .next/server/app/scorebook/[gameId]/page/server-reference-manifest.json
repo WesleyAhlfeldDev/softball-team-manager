@@ -1,0 +1,110 @@
+{
+  "node": {
+    "40bcd8da28ee0bd570ec2fe8d78f81e996be7b73e5": {
+      "workers": {
+        "app/scorebook/[gameId]/page": {
+          "moduleId": "[project]/.next-internal/server/app/scorebook/[gameId]/page/actions.js { ACTIONS_MODULE0 => \"[project]/src/server/actions/scorebook.ts [app-rsc] (ecmascript)\" } [app-rsc] (server actions loader, ecmascript)",
+          "async": false,
+          "exportedName": "recordPlateAppearance",
+          "filename": "src/server/actions/scorebook.ts"
+        }
+      },
+      "layer": {
+        "app/scorebook/[gameId]/page": "action-browser"
+      },
+      "exportedName": "recordPlateAppearance",
+      "filename": "src/server/actions/scorebook.ts"
+    },
+    "4077920ee44061fb4ecd848395f0132ac35541bc20": {
+      "workers": {
+        "app/scorebook/[gameId]/page": {
+          "moduleId": "[project]/.next-internal/server/app/scorebook/[gameId]/page/actions.js { ACTIONS_MODULE0 => \"[project]/src/server/actions/scorebook.ts [app-rsc] (ecmascript)\" } [app-rsc] (server actions loader, ecmascript)",
+          "async": false,
+          "exportedName": "undoLastPlateAppearance",
+          "filename": "src/server/actions/scorebook.ts"
+        }
+      },
+      "layer": {
+        "app/scorebook/[gameId]/page": "action-browser"
+      },
+      "exportedName": "undoLastPlateAppearance",
+      "filename": "src/server/actions/scorebook.ts"
+    },
+    "70d37b9f4e999575a71531ab094533cbd7e2fd8289": {
+      "workers": {
+        "app/scorebook/[gameId]/page": {
+          "moduleId": "[project]/.next-internal/server/app/scorebook/[gameId]/page/actions.js { ACTIONS_MODULE0 => \"[project]/src/server/actions/scorebook.ts [app-rsc] (ecmascript)\" } [app-rsc] (server actions loader, ecmascript)",
+          "async": false,
+          "exportedName": "updateOpponentScore",
+          "filename": "src/server/actions/scorebook.ts"
+        }
+      },
+      "layer": {
+        "app/scorebook/[gameId]/page": "action-browser"
+      },
+      "exportedName": "updateOpponentScore",
+      "filename": "src/server/actions/scorebook.ts"
+    },
+    "60672b2812a713348fb8628212359f82a51e397ed0": {
+      "workers": {
+        "app/scorebook/[gameId]/page": {
+          "moduleId": "[project]/.next-internal/server/app/scorebook/[gameId]/page/actions.js { ACTIONS_MODULE0 => \"[project]/src/server/actions/scorebook.ts [app-rsc] (ecmascript)\" } [app-rsc] (server actions loader, ecmascript)",
+          "async": false,
+          "exportedName": "nextInning",
+          "filename": "src/server/actions/scorebook.ts"
+        }
+      },
+      "layer": {
+        "app/scorebook/[gameId]/page": "action-browser"
+      },
+      "exportedName": "nextInning",
+      "filename": "src/server/actions/scorebook.ts"
+    },
+    "408dacccc581c4dd9bb99c5c5d9c2747a496ad3488": {
+      "workers": {
+        "app/scorebook/[gameId]/page": {
+          "moduleId": "[project]/.next-internal/server/app/scorebook/[gameId]/page/actions.js { ACTIONS_MODULE0 => \"[project]/src/server/actions/scorebook.ts [app-rsc] (ecmascript)\" } [app-rsc] (server actions loader, ecmascript)",
+          "async": false,
+          "exportedName": "endGame",
+          "filename": "src/server/actions/scorebook.ts"
+        }
+      },
+      "layer": {
+        "app/scorebook/[gameId]/page": "action-browser"
+      },
+      "exportedName": "endGame",
+      "filename": "src/server/actions/scorebook.ts"
+    },
+    "40eb02ea36a7b82b3caec2830573dfdbb955811673": {
+      "workers": {
+        "app/scorebook/[gameId]/page": {
+          "moduleId": "[project]/.next-internal/server/app/scorebook/[gameId]/page/actions.js { ACTIONS_MODULE0 => \"[project]/src/server/actions/scorebook.ts [app-rsc] (ecmascript)\" } [app-rsc] (server actions loader, ecmascript)",
+          "async": false,
+          "exportedName": "startGame",
+          "filename": "src/server/actions/scorebook.ts"
+        }
+      },
+      "layer": {
+        "app/scorebook/[gameId]/page": "action-browser"
+      },
+      "exportedName": "startGame",
+      "filename": "src/server/actions/scorebook.ts"
+    },
+    "403a20daed3ef61449859c7df67f30ccf29398547d": {
+      "workers": {
+        "app/scorebook/[gameId]/page": {
+          "moduleId": "[project]/.next-internal/server/app/scorebook/[gameId]/page/actions.js { ACTIONS_MODULE0 => \"[project]/src/server/actions/scorebook.ts [app-rsc] (ecmascript)\" } [app-rsc] (server actions loader, ecmascript)",
+          "async": false,
+          "exportedName": "restartGame",
+          "filename": "src/server/actions/scorebook.ts"
+        }
+      },
+      "layer": {
+        "app/scorebook/[gameId]/page": "action-browser"
+      },
+      "exportedName": "restartGame",
+      "filename": "src/server/actions/scorebook.ts"
+    }
+  },
+  "edge": {}
+}

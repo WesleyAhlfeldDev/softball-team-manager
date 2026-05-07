@@ -20,7 +20,11 @@ export default async function RosterPage() {
       players: {
         orderBy: [{ isActive: "desc" }, { jerseyNumber: "asc" }],
         include: {
-          playerStats: { select: { battingAvg: true, ops: true } },
+          playerStats: {
+            where:  { season: { isActive: true } },
+            select: { battingAvg: true, ops: true },
+            take: 1,
+          },
         },
       },
     },

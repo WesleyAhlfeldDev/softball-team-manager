@@ -4,7 +4,6 @@ import { prisma } from "@/lib/db";
 import { auth } from "@/lib/auth";
 import { revalidatePath } from "next/cache";
 import type { PlateAppearanceResult } from "@prisma/client";
-import { GameStatus } from "@prisma/client";
 
 async function getTeamId() {
   const session = await auth();
@@ -25,7 +24,6 @@ export async function startGame(gameId: string) {
     data: { status: "IN_PROGRESS", startedAt: new Date() },
   });
 
-  // Create inning 1
   await prisma.inning.upsert({
     where: { gameId_inningNumber: { gameId, inningNumber: 1 } },
     create: { gameId, inningNumber: 1 },
@@ -50,6 +48,7 @@ export async function recordPlateAppearance(data: {
   result: PlateAppearanceResult;
   rbis: number;
   runsScored: boolean;
+  scoredRunnerIds: string[];
 }) {
   const teamId = await getTeamId();
 
@@ -59,14 +58,12 @@ export async function recordPlateAppearance(data: {
   });
   if (!game) return { error: "Game not found" };
 
-  // Ensure inning exists
   const inning = await prisma.inning.upsert({
     where: { gameId_inningNumber: { gameId: data.gameId, inningNumber: data.inningNumber } },
     create: { gameId: data.gameId, inningNumber: data.inningNumber },
     update: {},
   });
 
-  // Record plate appearance
   await prisma.plateAppearance.create({
     data: {
       gameId:           data.gameId,
@@ -77,14 +74,12 @@ export async function recordPlateAppearance(data: {
       result:           data.result,
       rbis:             data.rbis,
       runsScored:       data.runsScored,
+      scoredRunnerIds:  data.scoredRunnerIds,
     },
   });
 
-  // Determine if it's an at-bat (not walk, sac fly, HBP)
-  const isAtBat = !["WALK", "HIT_BY_PITCH", "SAC_FLY", "SAC_BUNT"].includes(data.result);
-  const isHit   = ["SINGLE", "DOUBLE", "TRIPLE", "HOME_RUN"].includes(data.result);
+  const isHit = ["SINGLE", "DOUBLE", "TRIPLE", "HOME_RUN"].includes(data.result);
 
-  // Build human-readable description
   const resultLabels: Record<PlateAppearanceResult, string> = {
     SINGLE:          "1B",
     DOUBLE:          "2B",
@@ -118,15 +113,14 @@ export async function recordPlateAppearance(data: {
 
   await prisma.playEvent.create({
     data: {
-      gameId:      data.gameId,
-      inningId:    inning.id,
-      type:        "PLATE_APPEARANCE",
+      gameId:       data.gameId,
+      inningId:     inning.id,
+      type:         "PLATE_APPEARANCE",
       inningNumber: data.inningNumber,
-      description: desc,
+      description:  desc,
     },
   });
 
-  // Update inning runs + hits
   if (data.rbis > 0 || data.runsScored) {
     await prisma.inning.update({
       where: { id: inning.id },
@@ -142,7 +136,6 @@ export async function recordPlateAppearance(data: {
     });
   }
 
-  // Update game totals
   await prisma.game.update({
     where: { id: data.gameId },
     data: {
@@ -169,7 +162,6 @@ export async function undoLastPlateAppearance(gameId: string) {
 
   const isHit = ["SINGLE","DOUBLE","TRIPLE","HOME_RUN"].includes(last.result);
 
-  // Reverse game totals
   await prisma.game.update({
     where: { id: gameId },
     data: {
@@ -178,7 +170,6 @@ export async function undoLastPlateAppearance(gameId: string) {
     },
   });
 
-  // Reverse inning totals
   const inning = await prisma.inning.findFirst({
     where: { gameId, inningNumber: last.inningNumber },
   });
@@ -192,7 +183,6 @@ export async function undoLastPlateAppearance(gameId: string) {
     });
   }
 
-  // Delete last play event
   await prisma.playEvent.deleteMany({
     where: { gameId, type: "PLATE_APPEARANCE", inningNumber: last.inningNumber },
   });
@@ -209,13 +199,12 @@ export async function updateOpponentScore(gameId: string, inningNumber: number, 
   const game = await prisma.game.findFirst({ where: { id: gameId, teamId } });
   if (!game) return { error: "Game not found" };
 
-  const inning = await prisma.inning.upsert({
+  await prisma.inning.upsert({
     where: { gameId_inningNumber: { gameId, inningNumber } },
     create: { gameId, inningNumber, opponentRuns: Math.max(0, runs) },
     update: { opponentRuns: Math.max(0, runs) },
   });
 
-  // Recalculate total opponent runs from all innings
   const innings = await prisma.inning.findMany({ where: { gameId } });
   const totalOpponentRuns = innings.reduce((sum, inn) => sum + inn.opponentRuns, 0);
 
@@ -234,7 +223,6 @@ export async function nextInning(gameId: string, currentInning: number) {
   const game = await prisma.game.findFirst({ where: { id: gameId, teamId } });
   if (!game) return { error: "Game not found" };
 
-  // Mark current inning complete
   await prisma.inning.updateMany({
     where: { gameId, inningNumber: currentInning },
     data: { isComplete: true },
@@ -242,7 +230,6 @@ export async function nextInning(gameId: string, currentInning: number) {
 
   const nextInn = currentInning + 1;
 
-  // Create next inning
   await prisma.inning.upsert({
     where: { gameId_inningNumber: { gameId, inningNumber: nextInn } },
     create: { gameId, inningNumber: nextInn },
@@ -265,6 +252,7 @@ export async function nextInning(gameId: string, currentInning: number) {
 // ── End game + calculate stats ─────────────────────────────────
 export async function endGame(gameId: string) {
   const teamId = await getTeamId();
+
   const game = await prisma.game.findFirst({
     where: { id: gameId, teamId },
     include: {
@@ -273,6 +261,8 @@ export async function endGame(gameId: string) {
     },
   });
   if (!game) return { error: "Game not found" };
+
+  const seasonId = game.seasonId;
 
   // ── Calculate per-player stats ──────────────────────────────
   const playerMap = new Map<string, {
@@ -293,7 +283,17 @@ export async function endGame(gameId: string) {
     const s = playerMap.get(pa.playerId)!;
     s.plateAppearances++;
     s.rbi += pa.rbis;
-    if (pa.runsScored) s.runs++;
+    // runs are attributed to whoever actually scored (tracked in scoredRunnerIds)
+    for (const runnerId of (pa.scoredRunnerIds ?? [])) {
+      if (!playerMap.has(runnerId)) {
+        playerMap.set(runnerId, {
+          atBats: 0, plateAppearances: 0, hits: 0, singles: 0,
+          doubles: 0, triples: 0, homeRuns: 0, rbi: 0, runs: 0,
+          walks: 0, strikeouts: 0, sacFlies: 0, reachedOnError: 0,
+        });
+      }
+      playerMap.get(runnerId)!.runs++;
+    }
 
     const isAB = !["WALK","HIT_BY_PITCH","SAC_FLY","SAC_BUNT"].includes(pa.result);
     if (isAB) s.atBats++;
@@ -310,13 +310,12 @@ export async function endGame(gameId: string) {
     }
   }
 
-  // Save per-game stats and update season totals
   for (const [playerId, stats] of playerMap.entries()) {
-    const ab  = stats.atBats;
-    const h   = stats.hits;
-    const bb  = stats.walks;
-    const sf  = stats.sacFlies;
-    const pa  = stats.plateAppearances;
+    const ab = stats.atBats;
+    const h  = stats.hits;
+    const bb = stats.walks;
+    const sf = stats.sacFlies;
+    const pa = stats.plateAppearances;
 
     const battingAvg = ab > 0 ? h / ab : null;
     const slugging   = ab > 0
@@ -334,17 +333,20 @@ export async function endGame(gameId: string) {
       update: { ...stats, battingAvg, slugging, obp, ops },
     });
 
-    // Update season stats
-    const season = await prisma.playerSeasonStats.findUnique({ where: { playerId } });
-    if (season) {
-      const newAB   = season.atBats + ab;
-      const newH    = season.hits + h;
-      const newBB   = season.walks + bb;
-      const newSF   = season.sacFlies + sf;
-      const newSLG1 = season.singles + stats.singles;
-      const newSLG2 = season.doubles + stats.doubles;
-      const newSLG3 = season.triples + stats.triples;
-      const newHR   = season.homeRuns + stats.homeRuns;
+    // Create or update season stats
+    const existing = await prisma.playerSeasonStats.findUnique({
+      where: { playerId_seasonId: { playerId, seasonId } },
+    });
+
+    if (existing) {
+      const newAB   = existing.atBats + ab;
+      const newH    = existing.hits + h;
+      const newBB   = existing.walks + bb;
+      const newSF   = existing.sacFlies + sf;
+      const newSLG1 = existing.singles + stats.singles;
+      const newSLG2 = existing.doubles + stats.doubles;
+      const newSLG3 = existing.triples + stats.triples;
+      const newHR   = existing.homeRuns + stats.homeRuns;
 
       const sAvg = newAB > 0 ? newH / newAB : null;
       const sSlg = newAB > 0
@@ -354,38 +356,71 @@ export async function endGame(gameId: string) {
       const sOps = sObp !== null && sSlg !== null ? sObp + sSlg : null;
 
       await prisma.playerSeasonStats.update({
-        where: { playerId },
+        where: { playerId_seasonId: { playerId, seasonId } },
         data: {
-          gamesPlayed:     { increment: 1 },
-          atBats:          { increment: ab },
-          plateAppearances:{ increment: pa },
-          hits:            { increment: h },
-          singles:         { increment: stats.singles },
-          doubles:         { increment: stats.doubles },
-          triples:         { increment: stats.triples },
-          homeRuns:        { increment: stats.homeRuns },
-          rbi:             { increment: stats.rbi },
-          runs:            { increment: stats.runs },
-          walks:           { increment: stats.walks },
-          strikeouts:      { increment: stats.strikeouts },
-          sacFlies:        { increment: stats.sacFlies },
-          reachedOnError:  { increment: stats.reachedOnError },
-          battingAvg:      sAvg,
-          slugging:        sSlg,
-          obp:             sObp,
-          ops:             sOps,
+          gamesPlayed:      { increment: 1 },
+          atBats:           { increment: ab },
+          plateAppearances: { increment: pa },
+          hits:             { increment: h },
+          singles:          { increment: stats.singles },
+          doubles:          { increment: stats.doubles },
+          triples:          { increment: stats.triples },
+          homeRuns:         { increment: stats.homeRuns },
+          rbi:              { increment: stats.rbi },
+          runs:             { increment: stats.runs },
+          walks:            { increment: stats.walks },
+          strikeouts:       { increment: stats.strikeouts },
+          sacFlies:         { increment: stats.sacFlies },
+          reachedOnError:   { increment: stats.reachedOnError },
+          battingAvg:       sAvg,
+          slugging:         sSlg,
+          obp:              sObp,
+          ops:              sOps,
+        },
+      });
+    } else {
+      await prisma.playerSeasonStats.create({
+        data: {
+          playerId,
+          seasonId,
+          gamesPlayed:      1,
+          atBats:           ab,
+          plateAppearances: pa,
+          hits:             h,
+          singles:          stats.singles,
+          doubles:          stats.doubles,
+          triples:          stats.triples,
+          homeRuns:         stats.homeRuns,
+          rbi:              stats.rbi,
+          runs:             stats.runs,
+          walks:            bb,
+          strikeouts:       stats.strikeouts,
+          sacFlies:         sf,
+          reachedOnError:   stats.reachedOnError,
+          battingAvg,
+          slugging,
+          obp,
+          ops,
         },
       });
     }
   }
 
   // Update team season stats
-  const won = game.teamRuns > game.opponentRuns;
+  const won  = game.teamRuns > game.opponentRuns;
   const lost = game.teamRuns < game.opponentRuns;
 
-  await prisma.teamSeasonStats.updateMany({
-    where: { teamId },
-    data: {
+  await prisma.teamSeasonStats.upsert({
+    where: { seasonId },
+    create: {
+      seasonId,
+      wins:        won  ? 1 : 0,
+      losses:      lost ? 1 : 0,
+      runsScored:  game.teamRuns,
+      runsAllowed: game.opponentRuns,
+      runDiff:     game.teamRuns - game.opponentRuns,
+    },
+    update: {
       ...(won  && { wins:   { increment: 1 } }),
       ...(lost && { losses: { increment: 1 } }),
       runsScored:  { increment: game.teamRuns },
@@ -394,7 +429,6 @@ export async function endGame(gameId: string) {
     },
   });
 
-  // Mark game final
   await prisma.game.update({
     where: { id: gameId },
     data: { status: "FINAL", completedAt: new Date() },
@@ -416,13 +450,11 @@ export async function restartGame(gameId: string) {
   const game = await prisma.game.findFirst({ where: { id: gameId, teamId } });
   if (!game) return { error: "Game not found" };
 
-  // Delete all scorebook data for this game
   await prisma.playEvent.deleteMany({ where: { gameId } });
   await prisma.plateAppearance.deleteMany({ where: { gameId } });
   await prisma.playerGameStats.deleteMany({ where: { gameId } });
   await prisma.inning.deleteMany({ where: { gameId } });
 
-  // Reset game scores and status
   await prisma.game.update({
     where: { id: gameId },
     data: {

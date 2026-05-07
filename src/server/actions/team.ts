@@ -7,7 +7,6 @@ import { z } from "zod";
 
 const teamInfoSchema = z.object({
   name:      z.string().min(1, "Team name is required").max(100),
-  season:    z.string().min(1, "Season is required").max(50),
   league:    z.string().max(100).optional(),
   homeField: z.string().max(200).optional(),
   teamColor: z.string().regex(/^#[0-9a-fA-F]{6}$/).optional(),
@@ -30,7 +29,6 @@ export async function saveTeamInfo(formData: FormData) {
 
   const parsed = teamInfoSchema.safeParse({
     name:      formData.get("name"),
-    season:    formData.get("season"),
     league:    formData.get("league") || undefined,
     homeField: formData.get("homeField") || undefined,
     teamColor: formData.get("teamColor") || undefined,
