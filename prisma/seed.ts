@@ -33,7 +33,6 @@ async function main() {
   const team = await prisma.team.create({
     data: {
       name: "Your Team Name",
-      season: "Spring 2025",
       league: "",
       homeField: "",
       userId: user.id,
