@@ -2,7 +2,6 @@
 
 import { usePathname } from "next/navigation";
 import Link from "next/link";
-import { signOut } from "next-auth/react";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import {
   faHouse,
@@ -117,7 +116,7 @@ export default function DashboardNav() {
 
           {/* Sign out */}
           <button
-            onClick={() => signOut({ callbackUrl: "/login" })}
+            onClick={async () => { await fetch("/api/logout", { method: "POST" }); window.location.href = "/login"; }}
             className="hidden items-center gap-2 rounded-lg px-3 py-2 text-sm font-semibold transition-colors hover:text-[var(--color-text-primary)] md:flex"
             style={{
               background: "transparent",
@@ -205,7 +204,7 @@ export default function DashboardNav() {
             </Link>
 
             <button
-              onClick={() => signOut({ callbackUrl: "/login" })}
+              onClick={async () => { await fetch("/api/logout", { method: "POST" }); window.location.href = "/login"; }}
               className="mt-1 flex items-center gap-3 rounded-lg px-4 py-3 text-sm font-semibold"
               style={{
                 background: "transparent",

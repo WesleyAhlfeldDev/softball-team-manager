@@ -1,6 +1,9 @@
 import { cookies } from "next/headers";
 import { redirect } from "next/navigation";
+import { jwtVerify } from "jose";
 import DashboardNav from "./DashboardNav";
+
+const secret = new TextEncoder().encode(process.env.AUTH_SECRET!);
 
 export default async function DashboardLayout({
   children,
@@ -8,11 +11,13 @@ export default async function DashboardLayout({
   children: React.ReactNode;
 }) {
   const cookieStore = await cookies();
-  const hasSession =
-    !!cookieStore.get("__Secure-authjs.session-token") ||
-    !!cookieStore.get("authjs.session-token");
+  const token = cookieStore.get("app-session")?.value;
 
-  if (!hasSession) {
+  if (!token) redirect("/login");
+
+  try {
+    await jwtVerify(token, secret);
+  } catch {
     redirect("/login");
   }
 

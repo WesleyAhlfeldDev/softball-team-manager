@@ -1,7 +1,6 @@
 "use client";
 
 import { useState } from "react";
-import { signIn } from "next-auth/react";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import {
   faLock,
@@ -24,17 +23,18 @@ export default function LoginPage() {
     setError("");
     setLoading(true);
 
-    const result = await signIn("credentials", {
-      email,
-      password,
-      redirect: false,
+    const res = await fetch("/api/login", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ email, password }),
     });
 
-    if (result?.error || !result?.ok) {
-      setError("Invalid email or password.");
+    const data = await res.json();
+
+    if (!res.ok) {
+      setError(data.error ?? "Invalid email or password.");
       setLoading(false);
     } else {
-      // Full page navigation so the browser sends the session cookie
       window.location.href = "/dashboard";
     }
   };
