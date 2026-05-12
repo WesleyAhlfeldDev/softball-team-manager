@@ -7,6 +7,7 @@ import { PlayerRow } from "@/components/roster/PlayerRow";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import { faUsers } from "@fortawesome/free-solid-svg-icons";
 
+export const dynamic = "force-dynamic";
 export const metadata = { title: "Roster" };
 
 export default async function RosterPage() {

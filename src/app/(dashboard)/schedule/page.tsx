@@ -9,6 +9,7 @@ import { faCalendarDays } from "@fortawesome/free-solid-svg-icons";
 import { FinishSeasonButton } from "@/components/schedule/FinishSeasonButton";
 import { ResetSeasonButton } from "@/components/schedule/ResetSeasonButton";
 
+export const dynamic = "force-dynamic";
 export const metadata = { title: "Schedule" };
 
 export default async function SchedulePage() {

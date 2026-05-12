@@ -3,6 +3,7 @@ import { redirect } from "next/navigation";
 import { prisma } from "@/lib/db";
 import { StatsView } from "@/components/stats/StatsView";
 
+export const dynamic = "force-dynamic";
 export const metadata = { title: "Stats" };
 
 export default async function StatsPage() {

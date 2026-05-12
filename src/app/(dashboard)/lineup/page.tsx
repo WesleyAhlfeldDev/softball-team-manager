@@ -6,6 +6,7 @@ import { LineupBuilder } from "@/components/lineup/LineupBuilder";
 import { DEFAULT_LEAGUE_RULES, type LeagueRules } from "@/types/league-rules";
 import type { FieldingPosition } from "@prisma/client";
 
+export const dynamic = "force-dynamic";
 export const metadata = { title: "Lineup" };
 
 export default async function LineupPage() {

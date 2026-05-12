@@ -13,6 +13,7 @@ import {
 import Link from "next/link";
 import { DEFAULT_LEAGUE_RULES, type LeagueRules } from "@/types/league-rules";
 
+export const dynamic = "force-dynamic";
 export const metadata = { title: "Dashboard" };
 
 export default async function DashboardPage() {
