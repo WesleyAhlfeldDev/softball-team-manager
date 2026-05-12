@@ -249,13 +249,19 @@ async function saveTeamInfo(formData) {
 "[project]/src/server/actions/seasons.ts [app-rsc] (ecmascript)", ((__turbopack_context__) => {
 "use strict";
 
-/* __next_internal_action_entry_do_not_use__ [{"00b8875537dd3efd7811287e1b817d000b7e01a15a":"finishSeason","00d512e543ed9c3f72b8d6265f7df8d548719ed08f":"getSeasons","4079618ce3bd5844e8f6ea32e23b49187a76a77df8":"setActiveSeason","40adff5326444f977d7f03bb0cd489442b7436a73a":"createSeason"},"",""] */ __turbopack_context__.s([
+/* __next_internal_action_entry_do_not_use__ [{"00167e8aa98abb852d82a5ecb889e7d1ca96738584":"clearStats","004ecdfd9d7f0220bdfe3269b030484efcdb8222ec":"resetSeason","0053ff2007c793bfa3229e81bce3774d543411ef21":"seedRandomStats","00b8875537dd3efd7811287e1b817d000b7e01a15a":"finishSeason","00d512e543ed9c3f72b8d6265f7df8d548719ed08f":"getSeasons","4079618ce3bd5844e8f6ea32e23b49187a76a77df8":"setActiveSeason","40adff5326444f977d7f03bb0cd489442b7436a73a":"createSeason"},"",""] */ __turbopack_context__.s([
+    "clearStats",
+    ()=>clearStats,
     "createSeason",
     ()=>createSeason,
     "finishSeason",
     ()=>finishSeason,
     "getSeasons",
     ()=>getSeasons,
+    "resetSeason",
+    ()=>resetSeason,
+    "seedRandomStats",
+    ()=>seedRandomStats,
     "setActiveSeason",
     ()=>setActiveSeason
 ]);
@@ -324,6 +330,41 @@ async function createSeason(formData) {
         success: true
     };
 }
+async function resetSeason() {
+    const teamId = await getTeamId();
+    const active = await __TURBOPACK__imported__module__$5b$project$5d2f$src$2f$lib$2f$db$2e$ts__$5b$app$2d$rsc$5d$__$28$ecmascript$29$__["prisma"].season.findFirst({
+        where: {
+            teamId,
+            isActive: true
+        },
+        select: {
+            id: true
+        }
+    });
+    if (!active) return {
+        error: "No active season to reset"
+    };
+    await __TURBOPACK__imported__module__$5b$project$5d2f$src$2f$lib$2f$db$2e$ts__$5b$app$2d$rsc$5d$__$28$ecmascript$29$__["prisma"].game.deleteMany({
+        where: {
+            seasonId: active.id
+        }
+    });
+    await __TURBOPACK__imported__module__$5b$project$5d2f$src$2f$lib$2f$db$2e$ts__$5b$app$2d$rsc$5d$__$28$ecmascript$29$__["prisma"].playerSeasonStats.deleteMany({
+        where: {
+            seasonId: active.id
+        }
+    });
+    await __TURBOPACK__imported__module__$5b$project$5d2f$src$2f$lib$2f$db$2e$ts__$5b$app$2d$rsc$5d$__$28$ecmascript$29$__["prisma"].teamSeasonStats.deleteMany({
+        where: {
+            seasonId: active.id
+        }
+    });
+    (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$cache$2e$js__$5b$app$2d$rsc$5d$__$28$ecmascript$29$__["revalidatePath"])("/dashboard");
+    (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$cache$2e$js__$5b$app$2d$rsc$5d$__$28$ecmascript$29$__["revalidatePath"])("/schedule");
+    return {
+        success: true
+    };
+}
 async function finishSeason() {
     const teamId = await getTeamId();
     const active = await __TURBOPACK__imported__module__$5b$project$5d2f$src$2f$lib$2f$db$2e$ts__$5b$app$2d$rsc$5d$__$28$ecmascript$29$__["prisma"].season.findFirst({
@@ -346,6 +387,154 @@ async function finishSeason() {
     });
     (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$cache$2e$js__$5b$app$2d$rsc$5d$__$28$ecmascript$29$__["revalidatePath"])("/dashboard");
     (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$cache$2e$js__$5b$app$2d$rsc$5d$__$28$ecmascript$29$__["revalidatePath"])("/schedule");
+    return {
+        success: true
+    };
+}
+async function clearStats() {
+    const teamId = await getTeamId();
+    const active = await __TURBOPACK__imported__module__$5b$project$5d2f$src$2f$lib$2f$db$2e$ts__$5b$app$2d$rsc$5d$__$28$ecmascript$29$__["prisma"].season.findFirst({
+        where: {
+            teamId,
+            isActive: true
+        },
+        select: {
+            id: true
+        }
+    });
+    if (!active) return {
+        error: "No active season"
+    };
+    await __TURBOPACK__imported__module__$5b$project$5d2f$src$2f$lib$2f$db$2e$ts__$5b$app$2d$rsc$5d$__$28$ecmascript$29$__["prisma"].playerSeasonStats.deleteMany({
+        where: {
+            seasonId: active.id
+        }
+    });
+    await __TURBOPACK__imported__module__$5b$project$5d2f$src$2f$lib$2f$db$2e$ts__$5b$app$2d$rsc$5d$__$28$ecmascript$29$__["prisma"].teamSeasonStats.deleteMany({
+        where: {
+            seasonId: active.id
+        }
+    });
+    (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$cache$2e$js__$5b$app$2d$rsc$5d$__$28$ecmascript$29$__["revalidatePath"])("/stats");
+    (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$cache$2e$js__$5b$app$2d$rsc$5d$__$28$ecmascript$29$__["revalidatePath"])("/dashboard");
+    return {
+        success: true
+    };
+}
+async function seedRandomStats() {
+    const teamId = await getTeamId();
+    const active = await __TURBOPACK__imported__module__$5b$project$5d2f$src$2f$lib$2f$db$2e$ts__$5b$app$2d$rsc$5d$__$28$ecmascript$29$__["prisma"].season.findFirst({
+        where: {
+            teamId,
+            isActive: true
+        },
+        select: {
+            id: true
+        }
+    });
+    if (!active) return {
+        error: "No active season"
+    };
+    const players = await __TURBOPACK__imported__module__$5b$project$5d2f$src$2f$lib$2f$db$2e$ts__$5b$app$2d$rsc$5d$__$28$ecmascript$29$__["prisma"].player.findMany({
+        where: {
+            teamId,
+            isActive: true
+        },
+        select: {
+            id: true
+        }
+    });
+    if (players.length === 0) return {
+        error: "No active players on roster"
+    };
+    const rand = (min, max)=>Math.floor(Math.random() * (max - min + 1)) + min;
+    let totalWins = rand(4, 10);
+    let totalLosses = rand(2, 8);
+    const totalGames = totalWins + totalLosses;
+    let teamRunsScored = 0;
+    let teamRunsAllowed = 0;
+    for (const { id: playerId } of players){
+        const gamesPlayed = rand(Math.max(1, totalGames - 3), totalGames);
+        const atBats = rand(gamesPlayed * 3, gamesPlayed * 4);
+        const avgTenths = rand(150, 380);
+        const hits = Math.round(avgTenths / 1000 * atBats);
+        const doubles = rand(0, Math.floor(hits * 0.25));
+        const triples = rand(0, Math.min(2, Math.floor(hits * 0.05)));
+        const homeRuns = rand(0, Math.floor(hits * 0.18));
+        const singles = Math.max(0, hits - doubles - triples - homeRuns);
+        const rbi = rand(Math.floor(hits * 0.3), Math.floor(hits * 0.9));
+        const runs = rand(Math.floor(hits * 0.3), Math.floor(hits * 0.8));
+        const walks = rand(0, Math.floor(atBats * 0.15));
+        const strikeouts = rand(0, Math.floor(atBats * 0.2));
+        const totalBases = singles + doubles * 2 + triples * 3 + homeRuns * 4;
+        teamRunsScored += runs;
+        const battingAvg = atBats > 0 ? hits / atBats : 0;
+        const obp = atBats + walks > 0 ? (hits + walks) / (atBats + walks) : 0;
+        const slugging = atBats > 0 ? totalBases / atBats : 0;
+        const ops = obp + slugging;
+        await __TURBOPACK__imported__module__$5b$project$5d2f$src$2f$lib$2f$db$2e$ts__$5b$app$2d$rsc$5d$__$28$ecmascript$29$__["prisma"].playerSeasonStats.upsert({
+            where: {
+                playerId_seasonId: {
+                    playerId,
+                    seasonId: active.id
+                }
+            },
+            create: {
+                playerId,
+                seasonId: active.id,
+                gamesPlayed,
+                atBats,
+                hits,
+                doubles,
+                triples,
+                homeRuns,
+                rbi,
+                runs,
+                walks,
+                strikeouts,
+                battingAvg,
+                obp,
+                slugging,
+                ops
+            },
+            update: {
+                gamesPlayed,
+                atBats,
+                hits,
+                doubles,
+                triples,
+                homeRuns,
+                rbi,
+                runs,
+                walks,
+                strikeouts,
+                battingAvg,
+                obp,
+                slugging,
+                ops
+            }
+        });
+    }
+    teamRunsAllowed = rand(Math.floor(teamRunsScored * 0.5), Math.floor(teamRunsScored * 1.2));
+    await __TURBOPACK__imported__module__$5b$project$5d2f$src$2f$lib$2f$db$2e$ts__$5b$app$2d$rsc$5d$__$28$ecmascript$29$__["prisma"].teamSeasonStats.upsert({
+        where: {
+            seasonId: active.id
+        },
+        create: {
+            seasonId: active.id,
+            wins: totalWins,
+            losses: totalLosses,
+            runsScored: teamRunsScored,
+            runsAllowed: teamRunsAllowed
+        },
+        update: {
+            wins: totalWins,
+            losses: totalLosses,
+            runsScored: teamRunsScored,
+            runsAllowed: teamRunsAllowed
+        }
+    });
+    (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$cache$2e$js__$5b$app$2d$rsc$5d$__$28$ecmascript$29$__["revalidatePath"])("/stats");
     return {
         success: true
     };
@@ -387,12 +576,18 @@ async function setActiveSeason(seasonId) {
 (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$build$2f$webpack$2f$loaders$2f$next$2d$flight$2d$loader$2f$action$2d$validate$2e$js__$5b$app$2d$rsc$5d$__$28$ecmascript$29$__["ensureServerEntryExports"])([
     getSeasons,
     createSeason,
+    resetSeason,
     finishSeason,
+    clearStats,
+    seedRandomStats,
     setActiveSeason
 ]);
 (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$build$2f$webpack$2f$loaders$2f$next$2d$flight$2d$loader$2f$server$2d$reference$2e$js__$5b$app$2d$rsc$5d$__$28$ecmascript$29$__["registerServerReference"])(getSeasons, "00d512e543ed9c3f72b8d6265f7df8d548719ed08f", null);
 (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$build$2f$webpack$2f$loaders$2f$next$2d$flight$2d$loader$2f$server$2d$reference$2e$js__$5b$app$2d$rsc$5d$__$28$ecmascript$29$__["registerServerReference"])(createSeason, "40adff5326444f977d7f03bb0cd489442b7436a73a", null);
+(0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$build$2f$webpack$2f$loaders$2f$next$2d$flight$2d$loader$2f$server$2d$reference$2e$js__$5b$app$2d$rsc$5d$__$28$ecmascript$29$__["registerServerReference"])(resetSeason, "004ecdfd9d7f0220bdfe3269b030484efcdb8222ec", null);
 (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$build$2f$webpack$2f$loaders$2f$next$2d$flight$2d$loader$2f$server$2d$reference$2e$js__$5b$app$2d$rsc$5d$__$28$ecmascript$29$__["registerServerReference"])(finishSeason, "00b8875537dd3efd7811287e1b817d000b7e01a15a", null);
+(0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$build$2f$webpack$2f$loaders$2f$next$2d$flight$2d$loader$2f$server$2d$reference$2e$js__$5b$app$2d$rsc$5d$__$28$ecmascript$29$__["registerServerReference"])(clearStats, "00167e8aa98abb852d82a5ecb889e7d1ca96738584", null);
+(0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$build$2f$webpack$2f$loaders$2f$next$2d$flight$2d$loader$2f$server$2d$reference$2e$js__$5b$app$2d$rsc$5d$__$28$ecmascript$29$__["registerServerReference"])(seedRandomStats, "0053ff2007c793bfa3229e81bce3774d543411ef21", null);
 (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$build$2f$webpack$2f$loaders$2f$next$2d$flight$2d$loader$2f$server$2d$reference$2e$js__$5b$app$2d$rsc$5d$__$28$ecmascript$29$__["registerServerReference"])(setActiveSeason, "4079618ce3bd5844e8f6ea32e23b49187a76a77df8", null);
 }),
 "[project]/.next-internal/server/app/(dashboard)/dashboard/page/actions.js { ACTIONS_MODULE0 => \"[project]/src/server/actions/league.ts [app-rsc] (ecmascript)\", ACTIONS_MODULE1 => \"[project]/src/server/actions/team.ts [app-rsc] (ecmascript)\", ACTIONS_MODULE2 => \"[project]/src/server/actions/seasons.ts [app-rsc] (ecmascript)\" } [app-rsc] (server actions loader, ecmascript) <locals>", ((__turbopack_context__) => {
@@ -407,11 +602,14 @@ var __TURBOPACK__imported__module__$5b$project$5d2f$src$2f$server$2f$actions$2f$
 ;
 ;
 ;
+;
 }),
 "[project]/.next-internal/server/app/(dashboard)/dashboard/page/actions.js { ACTIONS_MODULE0 => \"[project]/src/server/actions/league.ts [app-rsc] (ecmascript)\", ACTIONS_MODULE1 => \"[project]/src/server/actions/team.ts [app-rsc] (ecmascript)\", ACTIONS_MODULE2 => \"[project]/src/server/actions/seasons.ts [app-rsc] (ecmascript)\" } [app-rsc] (server actions loader, ecmascript)", ((__turbopack_context__) => {
 "use strict";
 
 __turbopack_context__.s([
+    "004ecdfd9d7f0220bdfe3269b030484efcdb8222ec",
+    ()=>__TURBOPACK__imported__module__$5b$project$5d2f$src$2f$server$2f$actions$2f$seasons$2e$ts__$5b$app$2d$rsc$5d$__$28$ecmascript$29$__["resetSeason"],
     "00b8875537dd3efd7811287e1b817d000b7e01a15a",
     ()=>__TURBOPACK__imported__module__$5b$project$5d2f$src$2f$server$2f$actions$2f$seasons$2e$ts__$5b$app$2d$rsc$5d$__$28$ecmascript$29$__["finishSeason"],
     "40312ee56e1b26154bda5cbd1d8563a598da840867",

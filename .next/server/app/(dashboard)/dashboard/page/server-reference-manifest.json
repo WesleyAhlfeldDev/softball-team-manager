@@ -74,6 +74,21 @@
       },
       "exportedName": "finishSeason",
       "filename": "src/server/actions/seasons.ts"
+    },
+    "004ecdfd9d7f0220bdfe3269b030484efcdb8222ec": {
+      "workers": {
+        "app/(dashboard)/dashboard/page": {
+          "moduleId": "[project]/.next-internal/server/app/(dashboard)/dashboard/page/actions.js { ACTIONS_MODULE0 => \"[project]/src/server/actions/league.ts [app-rsc] (ecmascript)\", ACTIONS_MODULE1 => \"[project]/src/server/actions/team.ts [app-rsc] (ecmascript)\", ACTIONS_MODULE2 => \"[project]/src/server/actions/seasons.ts [app-rsc] (ecmascript)\" } [app-rsc] (server actions loader, ecmascript)",
+          "async": false,
+          "exportedName": "resetSeason",
+          "filename": "src/server/actions/seasons.ts"
+        }
+      },
+      "layer": {
+        "app/(dashboard)/dashboard/page": "action-browser"
+      },
+      "exportedName": "resetSeason",
+      "filename": "src/server/actions/seasons.ts"
     }
   },
   "edge": {}
