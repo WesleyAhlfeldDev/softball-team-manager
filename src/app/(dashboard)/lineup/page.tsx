@@ -1,4 +1,4 @@
-import { auth } from "@/lib/auth";
+import { getSession } from "@/lib/session";
 import { redirect } from "next/navigation";
 import { prisma } from "@/lib/db";
 import { PageHeader } from "@/components/layout/PageHeader";
@@ -9,8 +9,7 @@ import type { FieldingPosition } from "@prisma/client";
 export const metadata = { title: "Lineup" };
 
 export default async function LineupPage() {
-  const session = await auth();
-  if (!session?.user?.id) redirect("/login");
+  const session = await getSession();
   const userId = session.user.id;
 
   const team = await prisma.team.findFirst({

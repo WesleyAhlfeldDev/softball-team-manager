@@ -7,9 +7,7 @@ export function middleware(req: NextRequest) {
   if (pathname.startsWith("/api/auth")) return NextResponse.next();
 
   if (pathname === "/") {
-    const hasSession =
-      !!req.cookies.get("__Secure-authjs.session-token") ||
-      !!req.cookies.get("authjs.session-token");
+    const hasSession = !!req.cookies.get("app-session");
     return NextResponse.redirect(
       new URL(hasSession ? "/dashboard" : "/login", req.nextUrl)
     );

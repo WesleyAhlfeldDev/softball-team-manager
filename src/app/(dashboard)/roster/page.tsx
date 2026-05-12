@@ -1,4 +1,4 @@
-import { auth } from "@/lib/auth";
+import { getSession } from "@/lib/session";
 import { redirect } from "next/navigation";
 import { prisma } from "@/lib/db";
 import { PageHeader } from "@/components/layout/PageHeader";
@@ -10,8 +10,7 @@ import { faUsers } from "@fortawesome/free-solid-svg-icons";
 export const metadata = { title: "Roster" };
 
 export default async function RosterPage() {
-  const session = await auth();
-  if (!session?.user?.id) redirect("/login");
+  const session = await getSession();
   const userId = session.user.id;
 
   const team = await prisma.team.findFirst({

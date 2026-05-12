@@ -1,7 +1,7 @@
 "use server";
 
 import { prisma } from "@/lib/db";
-import { auth } from "@/lib/auth";
+import { getSession } from "@/lib/session";
 import { revalidatePath } from "next/cache";
 import { z } from "zod";
 import type { GameStatus } from "@prisma/client";
@@ -17,7 +17,7 @@ const gameSchema = z.object({
 });
 
 async function getTeamContext() {
-  const session = await auth();
+  const session = await getSession();
   if (!session?.user?.id) throw new Error("Unauthorized");
   const team = await prisma.team.findFirst({
     where: { userId: session.user.id },
@@ -33,7 +33,7 @@ async function getTeamContext() {
 }
 
 async function getTeamId() {
-  const session = await auth();
+  const session = await getSession();
   if (!session?.user?.id) throw new Error("Unauthorized");
   const team = await prisma.team.findFirst({
     where: { userId: session.user.id },

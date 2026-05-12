@@ -1,7 +1,7 @@
 "use server";
 
 import { prisma } from "@/lib/db";
-import { auth } from "@/lib/auth";
+import { getSession } from "@/lib/session";
 import { revalidatePath } from "next/cache";
 import { z } from "zod";
 import { FieldingPosition } from "@prisma/client";
@@ -19,7 +19,7 @@ const playerSchema = z.object({
 });
 
 async function getTeamId() {
-  const session = await auth();
+  const session = await getSession();
   if (!session?.user?.id) throw new Error("Unauthorized");
   const team = await prisma.team.findFirst({
     where: { userId: session.user.id },

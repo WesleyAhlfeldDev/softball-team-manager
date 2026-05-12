@@ -1,4 +1,4 @@
-import { auth } from "@/lib/auth";
+import { getSession } from "@/lib/session";
 import { redirect } from "next/navigation";
 import { prisma } from "@/lib/db";
 import { Scorebook } from "@/components/scorebook/Scorebook";
@@ -10,8 +10,8 @@ interface ScoreboookPageProps {
 
 export default async function ScoreboookPage({ params }: ScoreboookPageProps) {
   const { gameId } = await params;
-  const session = await auth();
-  if (!session?.user?.id) redirect("/login");
+  const session = await getSession();
+  
   const userId = session.user.id;
 
   const team = await prisma.team.findFirst({

@@ -1,4 +1,4 @@
-import { auth } from "@/lib/auth";
+import { getSession } from "@/lib/session";
 import { redirect } from "next/navigation";
 import { prisma } from "@/lib/db";
 import { PageHeader } from "@/components/layout/PageHeader";
@@ -12,8 +12,7 @@ import { ResetSeasonButton } from "@/components/schedule/ResetSeasonButton";
 export const metadata = { title: "Schedule" };
 
 export default async function SchedulePage() {
-  const session = await auth();
-  if (!session?.user?.id) redirect("/login");
+  const session = await getSession();
   const userId = session.user.id;
 
   const team = await prisma.team.findFirst({

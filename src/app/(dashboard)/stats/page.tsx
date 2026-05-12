@@ -1,4 +1,4 @@
-import { auth } from "@/lib/auth";
+import { getSession } from "@/lib/session";
 import { redirect } from "next/navigation";
 import { prisma } from "@/lib/db";
 import { StatsView } from "@/components/stats/StatsView";
@@ -6,8 +6,7 @@ import { StatsView } from "@/components/stats/StatsView";
 export const metadata = { title: "Stats" };
 
 export default async function StatsPage() {
-  const session = await auth();
-  if (!session?.user?.id) redirect("/login");
+  const session = await getSession();
   const userId = session.user.id;
 
   const team = await prisma.team.findFirst({
