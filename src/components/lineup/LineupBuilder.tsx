@@ -1,11 +1,13 @@
 "use client";
 
 import { useState } from "react";
+import { useRouter } from "next/navigation";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import {
   faPlus, faArrowUp, faArrowDown, faXmark,
   faCheck, faSpinner, faStar, faUsers,
   faTableCells, faList, faTriangleExclamation,
+  faCalendarDays,
 } from "@fortawesome/free-solid-svg-icons";
 import { saveDefaultLineup, applyLineupToGame } from "@/server/actions/lineup";
 import type { FieldingPosition } from "@prisma/client";
@@ -51,13 +53,14 @@ interface LineupSlot {
   inningPositions?: Record<number, FieldingPosition>;
 }
 
-interface Game { id: string; opponent: string; gameDate: Date; }
+interface Game { id: string; opponent: string; gameDate: Date; status: string; }
 
 interface LineupBuilderProps {
   players: Player[];
   games: Game[];
   defaultLineup: LineupSlot[];
   leagueRules: LeagueRules;
+  selectedGameId: string | null;
 }
 
 type LineupMode = "standard" | "by-inning";
@@ -289,14 +292,26 @@ function InningGrid({
 }
 
 // ── Main component ─────────────────────────────────────────────
-export function LineupBuilder({ players, games, defaultLineup, leagueRules }: LineupBuilderProps) {
+export function LineupBuilder({ players, games, defaultLineup, leagueRules, selectedGameId: initialGameId }: LineupBuilderProps) {
+  const router = useRouter();
   const [lineup, setLineup]             = useState<LineupSlot[]>(defaultLineup);
   const [mode, setMode]                 = useState<LineupMode>("standard");
   const [activeInning, setActiveInning] = useState(1);
   const [saving, setSaving]             = useState(false);
   const [applying, setApplying]         = useState(false);
   const [savedMsg, setSavedMsg]         = useState("");
-  const [selectedGameId, setSelectedGameId] = useState<string>("");
+  const [selectedGameId, setSelectedGameId] = useState<string>(initialGameId ?? "");
+
+  const selectedGame = games.find((g) => g.id === selectedGameId);
+
+  const handleGameSelect = (gameId: string) => {
+    setSelectedGameId(gameId);
+    if (gameId) {
+      router.push(`/lineup?gameId=${gameId}`);
+    } else {
+      router.push("/lineup");
+    }
+  };
 
   const inLineup = new Set(lineup.map((s) => s.playerId));
   const bench    = players.filter((p) => !inLineup.has(p.id));
@@ -397,6 +412,45 @@ export function LineupBuilder({ players, games, defaultLineup, leagueRules }: Li
 
   return (
     <div>
+      {/* Game selector */}
+      {games.length > 0 && (
+        <div className="mb-6 rounded-[14px] p-4"
+          style={{ background: "var(--color-surface-card)", border: "1px solid var(--color-border-subtle)" }}>
+          <div className="flex items-center gap-3">
+            <FontAwesomeIcon icon={faCalendarDays}
+              style={{ width: 14, height: 14, color: "var(--color-text-muted)", flexShrink: 0 }} />
+            <span style={{ fontSize: "0.8rem", fontWeight: 600,
+              color: "var(--color-text-muted)", fontFamily: "var(--font-body)", flexShrink: 0 }}>
+              Game lineup:
+            </span>
+            <select
+              value={selectedGameId}
+              onChange={(e) => handleGameSelect(e.target.value)}
+              className="input"
+              style={{ flex: 1, background: "var(--color-surface-card2)",
+                color: selectedGameId ? "#eeeef5" : "rgba(238,238,245,0.4)", cursor: "pointer" }}
+            >
+              <option value="" style={{ background: "#111125", color: "rgba(238,238,245,0.4)" }}>
+                Default lineup
+              </option>
+              {games.map((g) => (
+                <option key={g.id} value={g.id} style={{ background: "#111125", color: "#eeeef5" }}>
+                  vs {g.opponent} — {new Date(g.gameDate).toLocaleDateString("en-US", { month: "short", day: "numeric" })}
+                  {g.status === "FINAL" ? " ✓" : g.status === "IN_PROGRESS" ? " ●" : ""}
+                </option>
+              ))}
+            </select>
+          </div>
+          {selectedGame && (
+            <p style={{ margin: "8px 0 0", fontSize: "0.75rem", color: "var(--color-text-muted)", fontFamily: "var(--font-body)" }}>
+              Editing lineup for <strong style={{ color: "#eeeef5" }}>vs {selectedGame.opponent}</strong> ·{" "}
+              {new Date(selectedGame.gameDate).toLocaleDateString("en-US", { weekday: "short", month: "short", day: "numeric" })}
+              {selectedGame.status === "FINAL" ? " · Final" : selectedGame.status === "IN_PROGRESS" ? " · In Progress" : ""}
+            </p>
+          )}
+        </div>
+      )}
+
       {/* Mode toggle */}
       <div className="mb-6 flex items-center gap-3">
         <span style={{ fontSize: "0.8rem", fontWeight: 600,
@@ -728,36 +782,60 @@ export function LineupBuilder({ players, games, defaultLineup, leagueRules }: Li
               {games.length > 0 && (
                 <div className="rounded-[14px] p-4"
                   style={{ background: "var(--color-surface-card)", border: "1px solid var(--color-border-subtle)" }}>
-                  <div className="field-label mb-2">Apply to a specific game</div>
-                  <div className="flex gap-3">
-                    <select value={selectedGameId} onChange={(e) => setSelectedGameId(e.target.value)}
-                      className="input"
-                      style={{ flex: 1, background: "var(--color-surface-card2)",
-                        color: selectedGameId ? "#eeeef5" : "rgba(238,238,245,0.4)", cursor: "pointer" }}>
-                      <option value="" style={{ background: "#111125", color: "rgba(238,238,245,0.4)" }}>
-                        Select a game…
-                      </option>
-                      {games.map((g) => (
-                        <option key={g.id} value={g.id} style={{ background: "#111125", color: "#eeeef5" }}>
-                          vs {g.opponent} — {new Date(g.gameDate).toLocaleDateString("en-US", {
-                            month: "short", day: "numeric",
-                          })}
-                        </option>
-                      ))}
-                    </select>
-                    <button onClick={handleApplyToGame} disabled={applying || !selectedGameId}
-                      className="flex items-center gap-2 rounded-lg px-4 py-2 font-bold transition-opacity hover:opacity-80 disabled:opacity-40"
-                      style={{ background: "rgba(255,255,255,0.08)", color: "#eeeef5",
-                        fontFamily: "var(--font-display)", fontSize: "0.875rem",
-                        letterSpacing: "0.05em", border: "1px solid rgba(255,255,255,0.12)",
-                        cursor: "pointer", whiteSpace: "nowrap" }}>
-                      {applying
-                        ? <FontAwesomeIcon icon={faSpinner} spin style={{ width: 13, height: 13 }} />
-                        : <FontAwesomeIcon icon={faCheck} style={{ width: 13, height: 13 }} />
-                      }
-                      APPLY
-                    </button>
-                  </div>
+                  {selectedGame ? (
+                    <>
+                      <div className="field-label mb-2">Save lineup for this game</div>
+                      <div className="flex items-center gap-3">
+                        <span style={{ flex: 1, fontSize: "0.875rem", color: "#eeeef5", fontFamily: "var(--font-body)" }}>
+                          vs {selectedGame.opponent} ·{" "}
+                          {new Date(selectedGame.gameDate).toLocaleDateString("en-US", { month: "short", day: "numeric" })}
+                        </span>
+                        <button onClick={handleApplyToGame} disabled={applying}
+                          className="flex items-center gap-2 rounded-lg px-4 py-2 font-bold transition-opacity hover:opacity-80 disabled:opacity-40"
+                          style={{ background: "rgba(255,255,255,0.08)", color: "#eeeef5",
+                            fontFamily: "var(--font-display)", fontSize: "0.875rem",
+                            letterSpacing: "0.05em", border: "1px solid rgba(255,255,255,0.12)",
+                            cursor: "pointer", whiteSpace: "nowrap" }}>
+                          {applying
+                            ? <FontAwesomeIcon icon={faSpinner} spin style={{ width: 13, height: 13 }} />
+                            : <FontAwesomeIcon icon={faCheck} style={{ width: 13, height: 13 }} />
+                          }
+                          SAVE TO GAME
+                        </button>
+                      </div>
+                    </>
+                  ) : (
+                    <>
+                      <div className="field-label mb-2">Apply to a specific game</div>
+                      <div className="flex gap-3">
+                        <select value={selectedGameId} onChange={(e) => setSelectedGameId(e.target.value)}
+                          className="input"
+                          style={{ flex: 1, background: "var(--color-surface-card2)",
+                            color: selectedGameId ? "#eeeef5" : "rgba(238,238,245,0.4)", cursor: "pointer" }}>
+                          <option value="" style={{ background: "#111125", color: "rgba(238,238,245,0.4)" }}>
+                            Select a game…
+                          </option>
+                          {games.map((g) => (
+                            <option key={g.id} value={g.id} style={{ background: "#111125", color: "#eeeef5" }}>
+                              vs {g.opponent} — {new Date(g.gameDate).toLocaleDateString("en-US", { month: "short", day: "numeric" })}
+                            </option>
+                          ))}
+                        </select>
+                        <button onClick={handleApplyToGame} disabled={applying || !selectedGameId}
+                          className="flex items-center gap-2 rounded-lg px-4 py-2 font-bold transition-opacity hover:opacity-80 disabled:opacity-40"
+                          style={{ background: "rgba(255,255,255,0.08)", color: "#eeeef5",
+                            fontFamily: "var(--font-display)", fontSize: "0.875rem",
+                            letterSpacing: "0.05em", border: "1px solid rgba(255,255,255,0.12)",
+                            cursor: "pointer", whiteSpace: "nowrap" }}>
+                          {applying
+                            ? <FontAwesomeIcon icon={faSpinner} spin style={{ width: 13, height: 13 }} />
+                            : <FontAwesomeIcon icon={faCheck} style={{ width: 13, height: 13 }} />
+                          }
+                          APPLY
+                        </button>
+                      </div>
+                    </>
+                  )}
                 </div>
               )}
 
