@@ -9,7 +9,6 @@ import {
   faCalendarDays,
   faListOl,
   faBolt,
-  faRightFromBracket,
   faBars,
   faXmark,
   faBaseballBatBall,
@@ -114,25 +113,6 @@ export default function DashboardNav() {
             GO LIVE
           </Link>
 
-          {/* Sign out */}
-          <button
-            onClick={async () => { await fetch("/api/logout", { method: "POST" }); window.location.href = "/login"; }}
-            className="hidden items-center gap-2 rounded-lg px-3 py-2 text-sm font-semibold transition-colors hover:text-[var(--color-text-primary)] md:flex"
-            style={{
-              background: "transparent",
-              border: "none",
-              color: "var(--color-text-muted)",
-              fontFamily: "var(--font-body)",
-              cursor: "pointer",
-            }}
-          >
-            <FontAwesomeIcon
-              icon={faRightFromBracket}
-              style={{ width: 14, height: 14 }}
-            />
-            Sign Out
-          </button>
-
           {/* Mobile menu toggle */}
           <button
             className="flex items-center justify-center rounded-lg p-2 md:hidden"
@@ -203,24 +183,6 @@ export default function DashboardNav() {
               GO LIVE
             </Link>
 
-            <button
-              onClick={async () => { await fetch("/api/logout", { method: "POST" }); window.location.href = "/login"; }}
-              className="mt-1 flex items-center gap-3 rounded-lg px-4 py-3 text-sm font-semibold"
-              style={{
-                background: "transparent",
-                border: "none",
-                color: "var(--color-text-muted)",
-                fontFamily: "var(--font-body)",
-                cursor: "pointer",
-                textAlign: "left",
-              }}
-            >
-              <FontAwesomeIcon
-                icon={faRightFromBracket}
-                style={{ width: 16, height: 16 }}
-              />
-              Sign Out
-            </button>
           </div>
         </div>
       )}

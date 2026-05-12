@@ -1,28 +1,13 @@
-import { cookies } from "next/headers";
-import { jwtVerify } from "jose";
-import { redirect } from "next/navigation";
-
-const secret = new TextEncoder().encode(process.env.AUTH_SECRET!);
+import { prisma } from "@/lib/db";
 
 export interface AppSession {
   user: { id: string; email: string; name: string };
 }
 
 export async function getSession(): Promise<AppSession> {
-  const cookieStore = await cookies();
-  const token = cookieStore.get("app-session")?.value;
-  if (!token) redirect("/login");
-
-  try {
-    const { payload } = await jwtVerify(token, secret);
-    return {
-      user: {
-        id: payload.id as string,
-        email: payload.email as string,
-        name: payload.name as string,
-      },
-    };
-  } catch {
-    redirect("/login");
-  }
+  const user = await prisma.user.findFirst();
+  if (!user) throw new Error("No user found in database");
+  return {
+    user: { id: user.id, email: user.email, name: user.name ?? "" },
+  };
 }
