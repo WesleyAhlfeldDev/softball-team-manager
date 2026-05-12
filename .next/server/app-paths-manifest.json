@@ -1,4 +1,6 @@
 {
+  "/(dashboard)/dashboard/page": "app/(dashboard)/dashboard/page.js",
   "/(dashboard)/schedule/page": "app/(dashboard)/schedule/page.js",
-  "/scorebook/[gameId]/page": "app/scorebook/[gameId]/page.js"
+  "/(dashboard)/stats/page": "app/(dashboard)/stats/page.js",
+  "/login/page": "app/login/page.js"
 }
