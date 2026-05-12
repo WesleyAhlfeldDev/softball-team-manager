@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { loginAction } from "./actions";
+import { signIn } from "next-auth/react";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import {
   faLock,
@@ -24,15 +24,18 @@ export default function LoginPage() {
     setError("");
     setLoading(true);
 
-    try {
-      const result = await loginAction(email, password);
-      if (result?.error) {
-        setError(result.error);
-      }
-    } catch {
-      setError("Something went wrong. Please try again.");
-    } finally {
+    const result = await signIn("credentials", {
+      email,
+      password,
+      redirect: false,
+    });
+
+    if (result?.error || !result?.ok) {
+      setError("Invalid email or password.");
       setLoading(false);
+    } else {
+      // Full page navigation so the browser sends the session cookie
+      window.location.href = "/dashboard";
     }
   };
 
@@ -188,10 +191,7 @@ export default function LoginPage() {
           </form>
 
           <p className="mt-5 text-center text-xs" style={{ color: "var(--color-text-muted)" }}>
-            Seed credentials:{" "}
-            <span style={{ fontFamily: "var(--font-mono)", color: "var(--color-text-secondary)" }}>
-              coach@example.com / admin123
-            </span>
+            Sign in with your admin credentials.
           </p>
         </div>
       </div>
