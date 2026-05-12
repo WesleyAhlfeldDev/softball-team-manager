@@ -49,9 +49,19 @@ export default async function LineupPage({ searchParams }: LineupPageProps) {
     inningPositions?: Record<number, FieldingPosition>;
   }
 
+  type SlimPlayer = {
+    id: string;
+    firstName: string;
+    lastName: string;
+    jerseyNumber: string | null;
+    gender: string | null;
+    primaryPosition: FieldingPosition;
+    positions: FieldingPosition[];
+  };
+
   type LineupSlotInit = {
     playerId: string;
-    player: typeof team.players[number];
+    player: SlimPlayer;
     battingOrder: number;
     fieldingPosition: FieldingPosition;
     inningPositions?: Record<number, FieldingPosition>;
