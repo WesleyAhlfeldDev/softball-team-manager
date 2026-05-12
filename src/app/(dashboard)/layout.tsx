@@ -1,4 +1,4 @@
-import { auth } from "@/lib/auth";
+import { cookies } from "next/headers";
 import { redirect } from "next/navigation";
 import DashboardNav from "./DashboardNav";
 
@@ -7,8 +7,12 @@ export default async function DashboardLayout({
 }: {
   children: React.ReactNode;
 }) {
-  const session = await auth();
-  if (!session) {
+  const cookieStore = await cookies();
+  const hasSession =
+    !!cookieStore.get("__Secure-authjs.session-token") ||
+    !!cookieStore.get("authjs.session-token");
+
+  if (!hasSession) {
     redirect("/login");
   }
 
