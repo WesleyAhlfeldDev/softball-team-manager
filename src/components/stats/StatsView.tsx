@@ -121,8 +121,6 @@ export function StatsView({ seasons, activeSeasonId, teamColor }: StatsViewProps
 
   const hasStats = playerStats.some((p) => p.gamesPlayed > 0);
 
-  const activeSeason = seasons.find((s) => s.id === selectedId);
-
   const dropdown = (
     <div style={{ position: "relative" }}>
       <style>{`

@@ -122,8 +122,8 @@ export async function seedRandomStats() {
   const rand = (min: number, max: number) =>
     Math.floor(Math.random() * (max - min + 1)) + min;
 
-  let totalWins = rand(4, 10);
-  let totalLosses = rand(2, 8);
+  const totalWins = rand(4, 10);
+  const totalLosses = rand(2, 8);
   const totalGames = totalWins + totalLosses;
   let teamRunsScored = 0;
   let teamRunsAllowed = 0;
