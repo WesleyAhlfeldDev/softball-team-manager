@@ -63,7 +63,6 @@ export async function addPlayer(formData: FormData) {
       jerseyNumber: jerseyNumber ?? null,
       gender: gender ?? null,
       notes: notes ?? null,
-      playerStats: { create: {} },
     },
   });
 
