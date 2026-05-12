@@ -108,7 +108,7 @@ export function PlayerRow({ player }: { player: Player }) {
       <td className="px-4 py-3 text-center">
         <span style={{ fontFamily: "var(--font-mono)", fontSize: "0.875rem", color: player.playerStats[0]?.battingAvg ? "#00e87a" : "#eeeef5" }}>
           {player.playerStats[0]?.battingAvg
-            ? `.${String(Math.round(player.playerStats.battingAvg * 1000)).padStart(3, "0")}`
+            ? `.${String(Math.round(player.playerStats[0].battingAvg * 1000)).padStart(3, "0")}`
             : ".000"}
         </span>
       </td>
