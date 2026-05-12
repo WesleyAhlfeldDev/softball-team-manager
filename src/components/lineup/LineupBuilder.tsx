@@ -7,8 +7,9 @@ import {
   faPlus, faArrowUp, faArrowDown, faXmark,
   faCheck, faSpinner, faStar, faUsers,
   faTableCells, faList, faTriangleExclamation,
-  faCalendarDays,
+  faCalendarDays, faTableColumns,
 } from "@fortawesome/free-solid-svg-icons";
+import Link from "next/link";
 import { saveDefaultLineup, applyLineupToGame } from "@/server/actions/lineup";
 import type { FieldingPosition } from "@prisma/client";
 import type { LeagueRules } from "@/types/league-rules";
@@ -442,11 +443,30 @@ export function LineupBuilder({ players, games, defaultLineup, leagueRules, sele
             </select>
           </div>
           {selectedGame && (
-            <p style={{ margin: "8px 0 0", fontSize: "0.75rem", color: "var(--color-text-muted)", fontFamily: "var(--font-body)" }}>
-              Editing lineup for <strong style={{ color: "#eeeef5" }}>vs {selectedGame.opponent}</strong> ·{" "}
-              {new Date(selectedGame.gameDate).toLocaleDateString("en-US", { weekday: "short", month: "short", day: "numeric" })}
-              {selectedGame.status === "FINAL" ? " · Final" : selectedGame.status === "IN_PROGRESS" ? " · In Progress" : ""}
-            </p>
+            <div className="mt-2 flex items-center justify-between gap-3">
+              <p style={{ margin: 0, fontSize: "0.75rem", color: "var(--color-text-muted)", fontFamily: "var(--font-body)" }}>
+                Editing lineup for <strong style={{ color: "#eeeef5" }}>vs {selectedGame.opponent}</strong> ·{" "}
+                {new Date(selectedGame.gameDate).toLocaleDateString("en-US", { weekday: "short", month: "short", day: "numeric" })}
+                {selectedGame.status === "FINAL" ? " · Final" : selectedGame.status === "IN_PROGRESS" ? " · In Progress" : ""}
+              </p>
+              <Link
+                href={`/lineup/sheet?gameId=${selectedGame.id}`}
+                className="flex items-center gap-2 rounded-lg px-3 py-1.5 text-sm font-semibold transition-opacity hover:opacity-80"
+                style={{
+                  background: "rgba(255,255,255,0.06)",
+                  border: "1px solid rgba(255,255,255,0.12)",
+                  color: "#eeeef5",
+                  textDecoration: "none",
+                  fontFamily: "var(--font-body)",
+                  fontSize: "0.8rem",
+                  whiteSpace: "nowrap",
+                  flexShrink: 0,
+                }}
+              >
+                <FontAwesomeIcon icon={faTableColumns} style={{ width: 12, height: 12 }} />
+                Position Sheet
+              </Link>
+            </div>
           )}
         </div>
       )}
