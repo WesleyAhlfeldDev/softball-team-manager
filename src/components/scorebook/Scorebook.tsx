@@ -609,6 +609,16 @@ export function Scorebook({ game, teamName, teamColor }: ScoreboookProps) {
       } else {
         setStep("confirm"); // no runners, just the batter advancement question
       }
+    } else if (result === "WALK" || result === "HIT_BY_PITCH") {
+      // Force-advance runners in a chain from 1st — no user input needed
+      const hasFirst  = runners.first  !== null;
+      const hasSecond = runners.second !== null;
+      const hasThird  = runners.third  !== null;
+      const forceDecisions: RunnerDecision[] = [];
+      if (hasFirst)  forceDecisions.push({ player: runners.first!,  from: "first",  to: "second" });
+      if (hasSecond) forceDecisions.push({ player: runners.second!, from: "second", to: hasFirst ? "third" : "second" });
+      if (hasThird)  forceDecisions.push({ player: runners.third!,  from: "third",  to: (hasFirst && hasSecond) ? "scored" : "third" });
+      await recordPA(result, null, forceDecisions);
     } else if (existingRunners.length > 0 && result !== "HOME_RUN" && result !== "STRIKEOUT") {
       // Non-hit with runners — show runner screen then record directly
       setStep("runners");
