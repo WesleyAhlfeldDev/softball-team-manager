@@ -114,7 +114,7 @@ interface GameData {
   plateAppearances: PlateAppearanceRecord[];
 }
 interface ScoreboookProps { game: GameData; teamName: string; teamColor: string; }
-type Step = "result" | "runners" | "error_base" | "confirm";
+type Step = "result" | "hit_type" | "out_type" | "runners" | "error_base" | "confirm";
 type RightTab = "lineup" | "log";
 
 // ── Helpers ────────────────────────────────────────────────────
@@ -609,7 +609,7 @@ export function Scorebook({ game, teamName, teamColor }: ScoreboookProps) {
       } else {
         setStep("confirm"); // no runners, just the batter advancement question
       }
-    } else if (existingRunners.length > 0 && result !== "HOME_RUN") {
+    } else if (existingRunners.length > 0 && result !== "HOME_RUN" && result !== "STRIKEOUT") {
       // Non-hit with runners — show runner screen then record directly
       setStep("runners");
     } else {
@@ -1367,63 +1367,103 @@ export function Scorebook({ game, teamName, teamColor }: ScoreboookProps) {
             </div>
           )}
 
-          {/* STEP 1: Result picker */}
+          {/* STEP 1: Primary choice — Hit / Out / Walk / Error */}
           {step === "result" && (
-            <>
-              <div style={{ marginBottom: 12 }}>
-                <div style={{ fontSize: "0.6rem", fontWeight: 700, letterSpacing: "0.15em",
-                  color: "rgba(238,238,245,0.35)", marginBottom: 8, fontFamily: "var(--font-display)" }}>HITS</div>
-                <div style={{ display: "grid", gridTemplateColumns: "repeat(4,1fr)", gap: 8 }}>
-                  {HITS.map((h) => (
-                    <button key={h.result} onClick={() => handleSelectResult(h.result)}
-                      style={{ padding: "18px 8px", borderRadius: 12, border: `1px solid ${h.color}44`,
-                        background: h.bg, color: h.color,
-                        fontFamily: "var(--font-display)", fontSize: "1.5rem", fontWeight: 900, cursor: "pointer" }}>
-                      {h.label}
-                    </button>
-                  ))}
-                </div>
+            <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 10 }}>
+              {/* HIT */}
+              <button onClick={() => setStep("hit_type")}
+                style={{ padding: "28px 12px", borderRadius: 14,
+                  border: "1px solid rgba(0,232,122,0.35)",
+                  background: "rgba(0,232,122,0.1)", color: "#00e87a",
+                  fontFamily: "var(--font-display)", fontSize: "1.6rem",
+                  fontWeight: 900, cursor: "pointer", letterSpacing: "0.04em" }}>
+                HIT
+              </button>
+              {/* OUT */}
+              <button onClick={() => setStep("out_type")}
+                style={{ padding: "28px 12px", borderRadius: 14,
+                  border: "1px solid rgba(255,61,61,0.35)",
+                  background: "rgba(255,61,61,0.1)", color: "#ff6b6b",
+                  fontFamily: "var(--font-display)", fontSize: "1.6rem",
+                  fontWeight: 900, cursor: "pointer", letterSpacing: "0.04em" }}>
+                OUT
+              </button>
+              {/* WALK */}
+              <button onClick={() => handleSelectResult("WALK")}
+                style={{ padding: "28px 12px", borderRadius: 14,
+                  border: "1px solid rgba(255,255,255,0.15)",
+                  background: "rgba(255,255,255,0.06)", color: "#eeeef5",
+                  fontFamily: "var(--font-display)", fontSize: "1.6rem",
+                  fontWeight: 900, cursor: "pointer", letterSpacing: "0.04em" }}>
+                WALK
+              </button>
+              {/* ERROR */}
+              <button onClick={() => handleSelectResult("REACHED_ON_ERROR")}
+                style={{ padding: "28px 12px", borderRadius: 14,
+                  border: "1px solid rgba(251,191,36,0.35)",
+                  background: "rgba(251,191,36,0.08)", color: "#fbbf24",
+                  fontFamily: "var(--font-display)", fontSize: "1.6rem",
+                  fontWeight: 900, cursor: "pointer", letterSpacing: "0.04em" }}>
+                ERROR
+              </button>
+            </div>
+          )}
+
+          {/* STEP 1a: Hit type — 1B / 2B / 3B / HR */}
+          {step === "hit_type" && (
+            <div>
+              <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 10, marginBottom: 10 }}>
+                {HITS.map((h) => (
+                  <button key={h.result} onClick={() => handleSelectResult(h.result)}
+                    style={{ padding: "28px 12px", borderRadius: 14,
+                      border: `1px solid ${h.color}44`, background: h.bg, color: h.color,
+                      fontFamily: "var(--font-display)", fontSize: "2rem",
+                      fontWeight: 900, cursor: "pointer" }}>
+                    {h.label}
+                  </button>
+                ))}
               </div>
-              <div style={{ marginBottom: 12 }}>
-                <div style={{ fontSize: "0.6rem", fontWeight: 700, letterSpacing: "0.15em",
-                  color: "rgba(238,238,245,0.35)", marginBottom: 8, fontFamily: "var(--font-display)" }}>OUTS</div>
-                <div style={{ display: "grid", gridTemplateColumns: "repeat(4,1fr)", gap: 8 }}>
-                  {OUTS.map((o) => (
-                    <button key={o.result} onClick={() => handleSelectResult(o.result)}
-                      style={{ padding: "14px 8px", borderRadius: 12, border: "1px solid rgba(255,61,61,0.25)",
-                        background: "rgba(255,61,61,0.08)", color: "#ff6b6b",
-                        fontFamily: "var(--font-display)", fontSize: "1.1rem", fontWeight: 800, cursor: "pointer" }}>
-                      {o.label}
-                    </button>
-                  ))}
-                </div>
+              <button onClick={() => setStep("result")}
+                style={{ width: "100%", padding: "13px", borderRadius: 12,
+                  border: "1px solid rgba(255,255,255,0.12)",
+                  background: "rgba(255,255,255,0.05)", color: "rgba(238,238,245,0.5)",
+                  fontFamily: "var(--font-display)", fontSize: "0.9rem",
+                  fontWeight: 700, cursor: "pointer" }}>
+                ← Back
+              </button>
+            </div>
+          )}
+
+          {/* STEP 1b: Out type — Ground Out / Fly Out / Fielder's Choice / Strikeout */}
+          {step === "out_type" && (
+            <div>
+              <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 10, marginBottom: 10 }}>
+                {([
+                  { result: "GROUNDOUT",       label: "Ground Out" },
+                  { result: "FLYOUT",          label: "Fly Out"    },
+                  { result: "FIELDERS_CHOICE", label: "Fielder's\nChoice" },
+                  { result: "STRIKEOUT",       label: "Strikeout"  },
+                ] as const).map((o) => (
+                  <button key={o.result} onClick={() => handleSelectResult(o.result)}
+                    style={{ padding: "22px 12px", borderRadius: 14,
+                      border: "1px solid rgba(255,61,61,0.3)",
+                      background: "rgba(255,61,61,0.08)", color: "#ff6b6b",
+                      fontFamily: "var(--font-display)", fontSize: "1.1rem",
+                      fontWeight: 900, cursor: "pointer", whiteSpace: "pre-line",
+                      lineHeight: 1.25 }}>
+                    {o.label}
+                  </button>
+                ))}
               </div>
-              <div style={{ marginBottom: 12 }}>
-                <div style={{ fontSize: "0.6rem", fontWeight: 700, letterSpacing: "0.15em",
-                  color: "rgba(238,238,245,0.35)", marginBottom: 8, fontFamily: "var(--font-display)" }}>OTHER</div>
-                <div style={{ display: "grid", gridTemplateColumns: "repeat(3,1fr)", gap: 8 }}>
-                  {OTHER.map((o) => (
-                    <button key={o.result} onClick={() => handleSelectResult(o.result)}
-                      style={{ padding: "14px 8px", borderRadius: 12, border: "1px solid rgba(255,255,255,0.12)",
-                        background: "rgba(255,255,255,0.05)", color: "#eeeef5",
-                        fontFamily: "var(--font-display)", fontSize: "1.1rem", fontWeight: 700, cursor: "pointer" }}>
-                      {o.label}
-                    </button>
-                  ))}
-                </div>
-              </div>
-              <div style={{ marginBottom: 12 }}>
-                <div style={{ fontSize: "0.6rem", fontWeight: 700, letterSpacing: "0.15em",
-                  color: "rgba(238,238,245,0.35)", marginBottom: 8, fontFamily: "var(--font-display)" }}>ERROR</div>
-                <button onClick={() => handleSelectResult("REACHED_ON_ERROR")}
-                  style={{ width: "100%", padding: "14px 8px", borderRadius: 12,
-                    border: "1px solid rgba(251,191,36,0.3)",
-                    background: "rgba(251,191,36,0.08)", color: "#fbbf24",
-                    fontFamily: "var(--font-display)", fontSize: "1.3rem", fontWeight: 800, cursor: "pointer" }}>
-                  E — Error
-                </button>
-              </div>
-            </>
+              <button onClick={() => setStep("result")}
+                style={{ width: "100%", padding: "13px", borderRadius: 12,
+                  border: "1px solid rgba(255,255,255,0.12)",
+                  background: "rgba(255,255,255,0.05)", color: "rgba(238,238,245,0.5)",
+                  fontFamily: "var(--font-display)", fontSize: "0.9rem",
+                  fontWeight: 700, cursor: "pointer" }}>
+                ← Back
+              </button>
+            </div>
           )}
 
           {/* STEP 2: Runner advancement */}
@@ -1449,7 +1489,12 @@ export function Scorebook({ game, teamName, teamColor }: ScoreboookProps) {
               <RunnerAdvancement decisions={runnerDecisions} onChange={setRunnerDecisions}
                 result={selectedResult} teamColor={teamColor} />
               <div style={{ display: "grid", gridTemplateColumns: "1fr 2fr", gap: 10, marginTop: 20 }}>
-                <button onClick={() => { setStep("result"); setSelectedResult(null); }}
+                <button onClick={() => {
+                    const isHit = ["SINGLE","DOUBLE","TRIPLE"].includes(selectedResult ?? "");
+                    const isOut = ["GROUNDOUT","FLYOUT","FIELDERS_CHOICE"].includes(selectedResult ?? "");
+                    setStep(isHit ? "hit_type" : isOut ? "out_type" : "result");
+                    setSelectedResult(null);
+                  }}
                   style={{ padding: "14px", borderRadius: 12, border: "1px solid rgba(255,255,255,0.12)",
                     background: "rgba(255,255,255,0.05)", color: "#eeeef5",
                     fontFamily: "var(--font-display)", fontSize: "0.9rem", fontWeight: 700, cursor: "pointer" }}>
@@ -1595,7 +1640,7 @@ export function Scorebook({ game, teamName, teamColor }: ScoreboookProps) {
               </div>
 
               <div style={{ display: "grid", gridTemplateColumns: "1fr 2fr", gap: 10 }}>
-                <button onClick={() => setStep(runnerDecisions.length > 0 ? "runners" : "result")}
+                <button onClick={() => setStep(runnerDecisions.length > 0 ? "runners" : "hit_type")}
                   style={{ padding: "14px", borderRadius: 12, border: "1px solid rgba(255,255,255,0.12)",
                     background: "rgba(255,255,255,0.05)", color: "#eeeef5",
                     fontFamily: "var(--font-display)", fontSize: "0.9rem", fontWeight: 700, cursor: "pointer" }}>
