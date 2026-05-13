@@ -1500,8 +1500,10 @@ export function Scorebook({ game, teamName, teamColor }: ScoreboookProps) {
                 result={selectedResult} teamColor={teamColor} />
               <div style={{ display: "grid", gridTemplateColumns: "1fr 2fr", gap: 10, marginTop: 20 }}>
                 <button onClick={() => {
-                    const isHit = ["SINGLE","DOUBLE","TRIPLE"].includes(selectedResult ?? "");
-                    const isOut = ["GROUNDOUT","FLYOUT","FIELDERS_CHOICE"].includes(selectedResult ?? "");
+                    const isHit   = ["SINGLE","DOUBLE","TRIPLE"].includes(selectedResult ?? "");
+                    const isOut   = ["GROUNDOUT","FLYOUT","FIELDERS_CHOICE"].includes(selectedResult ?? "");
+                    const isError = selectedResult === "REACHED_ON_ERROR";
+                    if (isError) { setStep("error_base"); return; }
                     setStep(isHit ? "hit_type" : isOut ? "out_type" : "result");
                     setSelectedResult(null);
                   }}
@@ -1581,7 +1583,13 @@ export function Scorebook({ game, teamName, teamColor }: ScoreboookProps) {
                   ← Back
                 </button>
                 <button
-                  onClick={() => recordPA("REACHED_ON_ERROR", batterFinalBase, runnerDecisions)}
+                  onClick={() => {
+                    if (runnerDecisions.length > 0) {
+                      setStep("runners");
+                    } else {
+                      recordPA("REACHED_ON_ERROR", batterFinalBase, runnerDecisions);
+                    }
+                  }}
                   disabled={saving}
                   style={{ padding: "14px", borderRadius: 12, border: "none",
                     background: teamColor, color: "#000",
@@ -1589,7 +1597,7 @@ export function Scorebook({ game, teamName, teamColor }: ScoreboookProps) {
                     cursor: "pointer", letterSpacing: "0.04em", opacity: saving ? 0.6 : 1,
                     display: "flex", alignItems: "center", justifyContent: "center", gap: 8 }}>
                   <FontAwesomeIcon icon={faCheck} style={{ width: 15, height: 15 }} />
-                  CONFIRM
+                  {runnerDecisions.length > 0 ? "NEXT →" : "CONFIRM"}
                 </button>
               </div>
             </div>
