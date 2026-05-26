@@ -12,11 +12,13 @@ export function middleware(req: NextRequest) {
     });
   }
 
-  const [user, pass] = atob(authHeader.slice("Basic ".length)).split(":");
-  if (
-    user !== process.env.BASIC_AUTH_USER ||
-    pass !== process.env.BASIC_AUTH_PASSWORD
-  ) {
+  const decoded = atob(authHeader.slice("Basic ".length));
+  const colonIdx = decoded.indexOf(":");
+  const user = decoded.slice(0, colonIdx);
+  const pass = decoded.slice(colonIdx + 1);
+  const expectedUser = (process.env.BASIC_AUTH_USER ?? "").trim();
+  const expectedPass = (process.env.BASIC_AUTH_PASSWORD ?? "").trim();
+  if (!expectedUser || !expectedPass || user !== expectedUser || pass !== expectedPass) {
     return new NextResponse("Unauthorized", {
       status: 401,
       headers: { "WWW-Authenticate": 'Basic realm="Softball Manager"' },
