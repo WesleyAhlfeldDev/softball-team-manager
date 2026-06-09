@@ -10,6 +10,7 @@ import {
   faArrowRight,
 } from "@fortawesome/free-solid-svg-icons";
 import { auth } from "@/lib/auth";
+import { RequestAccessForm } from "./RequestAccessForm";
 
 const FEATURES = [
   {
@@ -83,11 +84,11 @@ export default async function LandingPage() {
                 Log in
               </Link>
               <Link
-                href="/signup"
+                href="#request-access"
                 className="rounded-lg px-4 py-2 text-sm font-bold"
                 style={{ background: "var(--color-brand-500)", color: "#07070f", fontFamily: "var(--font-display)", letterSpacing: "0.05em", textDecoration: "none" }}
               >
-                Sign up
+                Request access
               </Link>
             </>
           )}
@@ -96,7 +97,7 @@ export default async function LandingPage() {
 
       {/* ── Hero ───────────────────────────────────────────────── */}
       <section className="mx-auto max-w-5xl px-4 pt-12 pb-16 text-center md:px-6 md:pt-20">
-        <p className="eyebrow">Slowpitch softball, organized</p>
+        <p className="eyebrow">Slowpitch softball, organized · Now in beta</p>
         <h1
           className="mx-auto mt-4 max-w-3xl text-4xl md:text-6xl"
           style={{ color: "var(--color-text-primary)", lineHeight: 1.05 }}
@@ -114,11 +115,11 @@ export default async function LandingPage() {
         </p>
         <div className="mt-8 flex items-center justify-center gap-3">
           <Link
-            href={isLoggedIn ? "/dashboard" : "/signup"}
+            href={isLoggedIn ? "/dashboard" : "#request-access"}
             className="flex items-center gap-2 rounded-lg px-6 py-3 text-sm font-bold transition-opacity hover:opacity-90"
             style={{ background: "var(--color-brand-500)", color: "#07070f", fontFamily: "var(--font-display)", letterSpacing: "0.05em", textDecoration: "none" }}
           >
-            {isLoggedIn ? "Open dashboard" : "Get started"}
+            {isLoggedIn ? "Open dashboard" : "Request beta access"}
             <FontAwesomeIcon icon={faArrowRight} style={{ width: 13, height: 13 }} />
           </Link>
           {!isLoggedIn && (
@@ -164,19 +165,36 @@ export default async function LandingPage() {
             <p className="mt-1.5 text-sm" style={{ color: "var(--color-text-secondary)" }}>
               {isLoggedIn
                 ? "Jump back into your team."
-                : "Create an account and set up your team in minutes."}
+                : "We're onboarding teams during the beta — request an invite below."}
             </p>
             <Link
-              href={isLoggedIn ? "/dashboard" : "/signup"}
+              href={isLoggedIn ? "/dashboard" : "#request-access"}
               className="mt-4 flex items-center gap-2 self-start rounded-lg px-4 py-2 text-sm font-bold transition-opacity hover:opacity-90"
               style={{ background: "var(--color-brand-500)", color: "#07070f", fontFamily: "var(--font-display)", letterSpacing: "0.05em", textDecoration: "none" }}
             >
-              {isLoggedIn ? "Go to dashboard" : "Get started"}
+              {isLoggedIn ? "Go to dashboard" : "Request access"}
               <FontAwesomeIcon icon={faArrowRight} style={{ width: 13, height: 13 }} />
             </Link>
           </div>
         </div>
       </section>
+
+      {/* ── Request beta access ────────────────────────────────── */}
+      {!isLoggedIn && (
+        <section id="request-access" className="mx-auto max-w-2xl scroll-mt-8 px-4 pb-20 md:px-6">
+          <div className="card card-brand" style={{ boxShadow: "var(--shadow-card)" }}>
+            <p className="eyebrow">Closed beta</p>
+            <h2 className="mt-1 text-2xl" style={{ color: "var(--color-text-primary)" }}>
+              Request access
+            </h2>
+            <p className="mt-1.5 mb-5 text-sm" style={{ color: "var(--color-text-secondary)" }}>
+              We&apos;re inviting teams in gradually while the app is in beta. Leave
+              your details and we&apos;ll reach out when a spot opens up.
+            </p>
+            <RequestAccessForm />
+          </div>
+        </section>
+      )}
 
       {/* ── Footer ─────────────────────────────────────────────── */}
       <footer

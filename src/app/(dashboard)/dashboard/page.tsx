@@ -5,6 +5,7 @@ import { PageHeader } from "@/components/layout/PageHeader";
 import { LeagueSettings } from "@/components/dashboard/LeagueSettings";
 import { TeamInfo } from "@/components/dashboard/TeamInfo";
 import { SeasonManager } from "@/components/dashboard/SeasonManager";
+import { AccessRequestsCard } from "@/components/dashboard/AccessRequestsCard";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import {
   faUsers, faCalendarDays, faListOl,
@@ -35,6 +36,12 @@ export default async function DashboardPage() {
   });
 
   if (!team) redirect("/");
+
+  const accessRequests = await prisma.accessRequest.findMany({
+    where: { status: "pending" },
+    orderBy: { createdAt: "desc" },
+    take: 50,
+  });
 
   const activeSeason = team.seasons.find((s) => s.isActive) ?? team.seasons[0];
   const games = activeSeason?.games ?? [];
@@ -180,6 +187,9 @@ export default async function DashboardPage() {
 
       {/* League Rules */}
       <LeagueSettings initialRules={leagueRules} />
+
+      {/* Beta access requests */}
+      <AccessRequestsCard requests={accessRequests} />
     </div>
   );
 }

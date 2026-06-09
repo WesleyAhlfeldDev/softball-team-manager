@@ -1,5 +1,6 @@
 "use client";
 
+import Link from "next/link";
 import { useActionState } from "react";
 import { useFormStatus } from "react-dom";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
@@ -115,8 +116,11 @@ export function SignupForm({ enabled }: { enabled: boolean }) {
         className="rounded-lg px-4 py-3 text-sm"
         style={{ background: "var(--color-surface-input)", color: "var(--color-text-secondary)" }}
       >
-        Signups are currently closed. Check back soon — or log in if you already
-        have an account.
+        Signups are currently closed while we&apos;re in beta.{" "}
+        <Link href="/#request-access" style={{ color: "var(--color-text-brand)" }}>
+          Request access
+        </Link>{" "}
+        and we&apos;ll be in touch — or log in if you already have an account.
       </p>
     );
   }

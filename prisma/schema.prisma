@@ -74,6 +74,19 @@ model VerificationToken {
   @@map("verification_tokens")
 }
 
+// Beta access requests submitted from the public landing page.
+model AccessRequest {
+  id        String   @id @default(cuid())
+  name      String
+  email     String
+  message   String?
+  status    String   @default("pending") // pending | invited | declined
+  createdAt DateTime @default(now())
+
+  @@index([status, createdAt])
+  @@map("access_requests")
+}
+
 // ─────────────────────────────────────────────────────────────
 // TEAM
 // ─────────────────────────────────────────────────────────────
