@@ -3,8 +3,11 @@
 import { z } from "zod";
 import bcrypt from "bcryptjs";
 import { AuthError } from "next-auth";
+import { redirect } from "next/navigation";
 import { prisma } from "@/lib/db";
 import { signIn, signOut } from "@/lib/auth";
+import { getSession } from "@/lib/session";
+import { createUserWithTeam } from "@/server/users";
 
 export type AuthState = { error: string } | undefined;
 
@@ -74,7 +77,7 @@ export async function signupAction(
   }
 
   const passwordHash = await bcrypt.hash(password, 12);
-  await prisma.user.create({ data: { name, email, passwordHash } });
+  await createUserWithTeam({ name, email, passwordHash });
 
   try {
     await signIn("credentials", { email, password, redirectTo: "/dashboard" });
@@ -85,6 +88,39 @@ export async function signupAction(
     throw error;
   }
   return undefined;
+}
+
+const setPasswordSchema = z
+  .object({
+    password: z.string().min(8, "Password must be at least 8 characters."),
+    confirm: z.string(),
+  })
+  .refine((d) => d.password === d.confirm, {
+    message: "Passwords don't match.",
+    path: ["confirm"],
+  });
+
+/** Set a real password for the logged-in user (used by the /welcome flow). */
+export async function setInitialPasswordAction(
+  _prev: AuthState,
+  formData: FormData,
+): Promise<AuthState> {
+  const session = await getSession();
+  const parsed = setPasswordSchema.safeParse({
+    password: formData.get("password"),
+    confirm: formData.get("confirm"),
+  });
+  if (!parsed.success) {
+    return { error: parsed.error.issues[0]?.message ?? "Invalid input." };
+  }
+
+  const passwordHash = await bcrypt.hash(parsed.data.password, 12);
+  await prisma.user.update({
+    where: { id: session.user.id },
+    data: { passwordHash, mustChangePassword: false, tempPasswordExpires: null },
+  });
+
+  redirect("/dashboard");
 }
 
 /** Sign out and return to the landing page. */

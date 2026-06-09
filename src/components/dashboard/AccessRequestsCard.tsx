@@ -1,4 +1,5 @@
 import { resolveAccessRequestAction } from "@/server/actions/access";
+import { InviteButton } from "./InviteButton";
 
 interface AccessRequestItem {
   id: string;
@@ -61,18 +62,8 @@ export function AccessRequestsCard({ requests }: { requests: AccessRequestItem[]
                 </p>
               </div>
 
-              <div className="flex shrink-0 gap-2">
-                <form action={resolveAccessRequestAction}>
-                  <input type="hidden" name="id" value={r.id} />
-                  <input type="hidden" name="status" value="invited" />
-                  <button
-                    type="submit"
-                    className="rounded-md px-3 py-1.5 text-xs font-bold"
-                    style={{ background: "var(--color-brand-500)", color: "#07070f" }}
-                  >
-                    Mark invited
-                  </button>
-                </form>
+              <div className="flex shrink-0 flex-col items-end gap-2">
+                <InviteButton id={r.id} />
                 <form action={resolveAccessRequestAction}>
                   <input type="hidden" name="id" value={r.id} />
                   <input type="hidden" name="status" value="declined" />

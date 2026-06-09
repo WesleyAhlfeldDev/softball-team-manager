@@ -37,9 +37,20 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
 
         const { email, password } = parsed.data;
 
-        const user = await prisma.user.findUnique({ where: { email } });
+        const user = await prisma.user.findUnique({
+          where: { email: email.toLowerCase() },
+        });
         // OAuth-only accounts have no passwordHash — reject credentials login.
         if (!user || !user.passwordHash) return null;
+
+        // An expired temporary (invite) password can no longer be used.
+        if (
+          user.mustChangePassword &&
+          user.tempPasswordExpires &&
+          user.tempPasswordExpires.getTime() < Date.now()
+        ) {
+          return null;
+        }
 
         const passwordMatch = await bcrypt.compare(password, user.passwordHash);
         if (!passwordMatch) return null;

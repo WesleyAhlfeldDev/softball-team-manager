@@ -1,6 +1,6 @@
 export const dynamic = "force-dynamic";
 
-import { getSession } from "@/lib/session";
+import { getSession, requirePasswordChanged } from "@/lib/session";
 import { redirect } from "next/navigation";
 import { prisma } from "@/lib/db";
 import { Scorebook } from "@/components/scorebook/Scorebook";
@@ -13,7 +13,8 @@ interface ScoreboookPageProps {
 export default async function ScoreboookPage({ params }: ScoreboookPageProps) {
   const { gameId } = await params;
   const session = await getSession();
-  
+  await requirePasswordChanged(session.user.id);
+
   const userId = session.user.id;
 
   const team = await prisma.team.findFirst({

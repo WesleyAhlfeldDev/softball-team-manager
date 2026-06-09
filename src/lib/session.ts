@@ -1,5 +1,6 @@
 import { redirect } from "next/navigation";
 import { auth } from "@/lib/auth";
+import { prisma } from "@/lib/db";
 
 export interface AppSession {
   user: { id: string; email: string; name: string };
@@ -20,4 +21,17 @@ export async function getSession(): Promise<AppSession> {
       name: session.user.name ?? "",
     },
   };
+}
+
+/**
+ * Redirect to /welcome if the user is still on a temporary password. Call this
+ * in protected layouts/pages. DB-read based, so it clears immediately once the
+ * user sets a real password (no JWT staleness). /welcome must NOT call this.
+ */
+export async function requirePasswordChanged(userId: string): Promise<void> {
+  const user = await prisma.user.findUnique({
+    where: { id: userId },
+    select: { mustChangePassword: true },
+  });
+  if (user?.mustChangePassword) redirect("/welcome");
 }
