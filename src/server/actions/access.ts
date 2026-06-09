@@ -98,25 +98,33 @@ export async function inviteFromAccessRequestAction(
 
   const email = request.email.trim().toLowerCase();
 
-  const existing = await prisma.user.findUnique({ where: { email } });
-  if (existing) {
-    await prisma.accessRequest.update({ where: { id }, data: { status: "invited" } });
-    revalidatePath("/dashboard");
-    return { error: `An account already exists for ${email}. Marked as invited.` };
-  }
-
-  // Temp password: URL-safe, ~12 chars.
+  // Generate a fresh temp password (used for both new and re-issued invites).
   const tempPassword = randomBytes(9).toString("base64url");
   const passwordHash = await bcrypt.hash(tempPassword, 12);
   const tempPasswordExpires = new Date(Date.now() + TEMP_PASSWORD_TTL_DAYS * 24 * 60 * 60 * 1000);
 
-  await createUserWithTeam({
-    email,
-    name: request.name,
-    passwordHash,
-    mustChangePassword: true,
-    tempPasswordExpires,
-  });
+  const existing = await prisma.user.findUnique({ where: { email } });
+  if (existing && !existing.mustChangePassword) {
+    // Already activated their own password — don't reset it.
+    await prisma.accessRequest.update({ where: { id }, data: { status: "invited" } });
+    return { error: `${email} already has an active account.` };
+  }
+
+  if (existing) {
+    // Invited before but hasn't set a password yet — re-issue a new temp one.
+    await prisma.user.update({
+      where: { id: existing.id },
+      data: { passwordHash, mustChangePassword: true, tempPasswordExpires },
+    });
+  } else {
+    await createUserWithTeam({
+      email,
+      name: request.name,
+      passwordHash,
+      mustChangePassword: true,
+      tempPasswordExpires,
+    });
+  }
 
   await prisma.accessRequest.update({ where: { id }, data: { status: "invited" } });
 
@@ -136,6 +144,8 @@ export async function inviteFromAccessRequestAction(
     `,
   });
 
-  revalidatePath("/dashboard");
+  // NOTE: intentionally no revalidatePath here — revalidating would re-render
+  // the dashboard, drop this now-"invited" request from the pending list, and
+  // unmount the UI showing the one-time temp password before it can be read.
   return { ok: true, tempPassword, emailed: sent };
 }
