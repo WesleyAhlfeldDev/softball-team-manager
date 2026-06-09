@@ -4,7 +4,7 @@ import { useActionState } from "react";
 import { useFormStatus } from "react-dom";
 import { inviteFromAccessRequestAction, type InviteState } from "@/server/actions/access";
 
-function Submit() {
+function Submit({ invited }: { invited: boolean }) {
   const { pending } = useFormStatus();
   return (
     <button
@@ -13,12 +13,12 @@ function Submit() {
       className="rounded-md px-3 py-1.5 text-xs font-bold disabled:opacity-60"
       style={{ background: "var(--color-brand-500)", color: "#07070f" }}
     >
-      {pending ? "Inviting…" : "Approve & invite"}
+      {pending ? "Sending…" : invited ? "Re-send invite" : "Approve & invite"}
     </button>
   );
 }
 
-export function InviteButton({ id }: { id: string }) {
+export function InviteButton({ id, invited = false }: { id: string; invited?: boolean }) {
   const [state, action] = useActionState<InviteState, FormData>(
     inviteFromAccessRequestAction,
     undefined,
@@ -48,7 +48,7 @@ export function InviteButton({ id }: { id: string }) {
           {state.error}
         </p>
       )}
-      <Submit />
+      <Submit invited={invited} />
     </form>
   );
 }

@@ -6,10 +6,12 @@ interface AccessRequestItem {
   name: string;
   email: string;
   message: string | null;
+  status: string;
   createdAt: Date;
 }
 
 export function AccessRequestsCard({ requests }: { requests: AccessRequestItem[] }) {
+  const pendingCount = requests.filter((r) => r.status === "pending").length;
   return (
     <div className="card mt-6">
       <div className="mb-4 flex items-center justify-between">
@@ -17,17 +19,17 @@ export function AccessRequestsCard({ requests }: { requests: AccessRequestItem[]
         <span
           className="rounded-full px-2 py-0.5 text-xs font-bold"
           style={{
-            background: requests.length ? "var(--color-brand-dim)" : "var(--color-surface-input)",
-            color: requests.length ? "var(--color-text-brand)" : "var(--color-text-muted)",
+            background: pendingCount ? "var(--color-brand-dim)" : "var(--color-surface-input)",
+            color: pendingCount ? "var(--color-text-brand)" : "var(--color-text-muted)",
           }}
         >
-          {requests.length} pending
+          {pendingCount} pending
         </span>
       </div>
 
       {requests.length === 0 ? (
         <p className="text-sm" style={{ color: "var(--color-text-muted)" }}>
-          No pending requests right now.
+          No requests yet.
         </p>
       ) : (
         <ul className="flex flex-col gap-3">
@@ -47,6 +49,14 @@ export function AccessRequestsCard({ requests }: { requests: AccessRequestItem[]
                   >
                     {r.email}
                   </a>
+                  {r.status === "invited" && (
+                    <span
+                      className="ml-2 rounded-full px-2 py-0.5 text-xs font-bold align-middle"
+                      style={{ background: "var(--color-brand-dim)", color: "var(--color-text-brand)" }}
+                    >
+                      Invited
+                    </span>
+                  )}
                 </p>
                 {r.message && (
                   <p className="mt-1 text-sm" style={{ color: "var(--color-text-secondary)" }}>
@@ -63,7 +73,7 @@ export function AccessRequestsCard({ requests }: { requests: AccessRequestItem[]
               </div>
 
               <div className="flex shrink-0 flex-col items-end gap-2">
-                <InviteButton id={r.id} />
+                <InviteButton id={r.id} invited={r.status === "invited"} />
                 <form action={resolveAccessRequestAction}>
                   <input type="hidden" name="id" value={r.id} />
                   <input type="hidden" name="status" value="declined" />

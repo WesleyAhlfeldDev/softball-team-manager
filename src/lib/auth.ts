@@ -6,7 +6,7 @@ import Facebook from "next-auth/providers/facebook";
 import { prisma } from "@/lib/db";
 import bcrypt from "bcryptjs";
 import { z } from "zod";
-import { authConfig } from "./auth.config";
+import { authConfig, ALLOWED_OAUTH_DOMAINS } from "./auth.config";
 
 export const loginSchema = z.object({
   email: z.string().email(),
@@ -16,6 +16,21 @@ export const loginSchema = z.object({
 export const { handlers, signIn, signOut, auth } = NextAuth({
   ...authConfig,
   adapter: PrismaAdapter(prisma),
+  callbacks: {
+    ...authConfig.callbacks,
+    async signIn({ user, account, profile }) {
+      // Credentials are already verified by the password check in authorize().
+      if (account?.provider === "credentials") return true;
+      const email = (user?.email ?? profile?.email ?? "").toLowerCase();
+      if (!email) return false;
+      // Allow existing/invited users (matched by email) to sign in or link.
+      const existing = await prisma.user.findUnique({ where: { email }, select: { id: true } });
+      if (existing) return true;
+      // Otherwise (brand-new OAuth account) only allow known domains.
+      const domain = email.split("@")[1];
+      return !!domain && ALLOWED_OAUTH_DOMAINS.includes(domain);
+    },
+  },
   providers: [
     Google({
       // Link a Google login to an existing account with the same email.

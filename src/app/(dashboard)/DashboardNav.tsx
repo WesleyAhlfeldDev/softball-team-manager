@@ -14,6 +14,7 @@ import {
   faBaseballBatBall,
   faChartBar,
   faRightFromBracket,
+  faGear,
 } from "@fortawesome/free-solid-svg-icons";
 import { useState } from "react";
 import { logoutAction } from "@/server/actions/auth";
@@ -115,6 +116,19 @@ export default function DashboardNav() {
             GO LIVE
           </Link>
 
+          {/* Account (desktop) */}
+          <Link
+            href="/account"
+            title="Account"
+            className="hidden items-center justify-center rounded-lg p-2 transition-colors hover:opacity-80 md:flex"
+            style={{
+              color: isActive("/account") ? "var(--color-text-brand)" : "var(--color-text-muted)",
+              textDecoration: "none",
+            }}
+          >
+            <FontAwesomeIcon icon={faGear} style={{ width: 16, height: 16 }} />
+          </Link>
+
           {/* Log out (desktop) */}
           <form action={logoutAction} className="hidden md:block">
             <button
@@ -202,7 +216,21 @@ export default function DashboardNav() {
               GO LIVE
             </Link>
 
-            <form action={logoutAction} className="mt-1">
+            <Link
+              href="/account"
+              onClick={() => setMobileOpen(false)}
+              className="mt-1 flex items-center gap-3 rounded-lg px-4 py-3 text-sm font-semibold"
+              style={{
+                color: isActive("/account") ? "var(--color-text-brand)" : "var(--color-text-secondary)",
+                background: isActive("/account") ? "var(--color-brand-dim)" : "transparent",
+                textDecoration: "none",
+              }}
+            >
+              <FontAwesomeIcon icon={faGear} style={{ width: 16, height: 16 }} />
+              Account
+            </Link>
+
+            <form action={logoutAction}>
               <button
                 type="submit"
                 className="flex w-full items-center gap-3 rounded-lg px-4 py-3 text-sm font-semibold"

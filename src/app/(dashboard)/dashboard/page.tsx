@@ -41,8 +41,8 @@ export default async function DashboardPage() {
   const isAdmin = isAdminEmail(session.user.email);
   const accessRequests = isAdmin
     ? await prisma.accessRequest.findMany({
-        where: { status: "pending" },
-        orderBy: { createdAt: "desc" },
+        where: { status: { in: ["pending", "invited"] } },
+        orderBy: [{ status: "desc" }, { createdAt: "desc" }], // pending before invited
         take: 50,
       })
     : [];

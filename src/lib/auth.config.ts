@@ -3,9 +3,10 @@ import type { NextAuthConfig } from "next-auth";
 // Routes that are reachable without a session.
 const PUBLIC_ROUTES = ["/", "/login", "/signup"];
 
-// Signups are closed: OAuth (Google/Facebook) sign-in is restricted to these
-// email domains. Anyone else is denied. Credentials login is unaffected.
-const ALLOWED_OAUTH_DOMAINS = [
+// Signups are closed. OAuth sign-in is allowed for existing/invited users (see
+// the signIn callback in auth.ts) and, as a fallback for brand-new OAuth
+// accounts, these email domains. Credentials login is unaffected.
+export const ALLOWED_OAUTH_DOMAINS = [
   "ahlfeldsolutions.com",
   "wesleyahlfeld.me",
   "okwustudents.edu",
@@ -16,14 +17,8 @@ export const authConfig: NextAuthConfig = {
   session: { strategy: "jwt" },
   pages: { signIn: "/login", error: "/login" },
   callbacks: {
-    signIn({ user, account, profile }) {
-      // Credentials are already verified by the password check in authorize().
-      if (account?.provider === "credentials") return true;
-      // OAuth: allow only known email domains (closed signups).
-      const email = user?.email ?? profile?.email ?? "";
-      const domain = email.split("@")[1]?.toLowerCase();
-      return !!domain && ALLOWED_OAUTH_DOMAINS.includes(domain);
-    },
+    // NOTE: the signIn callback lives in auth.ts (it needs Prisma, which isn't
+    // available in the Edge middleware that imports this config).
     // Used by middleware to gate routes. `auth` is null when logged out.
     authorized({ auth, request: { nextUrl } }) {
       const isLoggedIn = !!auth?.user;
