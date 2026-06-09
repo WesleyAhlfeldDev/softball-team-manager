@@ -30,7 +30,7 @@ export default async function RosterPage() {
     },
   });
 
-  if (!team) redirect("/login");
+  if (!team) redirect("/");
 
   const activePlayers   = team.players.filter((p) => p.isActive);
   const inactivePlayers = team.players.filter((p) => !p.isActive);

@@ -32,7 +32,7 @@ export default async function StatsPage() {
     },
   });
 
-  if (!team) redirect("/login");
+  if (!team) redirect("/");
 
   const activeSeasonId = team.seasons.find((s) => s.isActive)?.id ?? null;
   const teamColor = team.teamColor ?? "#00e87a";

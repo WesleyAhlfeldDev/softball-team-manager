@@ -28,7 +28,7 @@ export default async function LineupPage({ searchParams }: LineupPageProps) {
     },
   });
 
-  if (!team) redirect("/login");
+  if (!team) redirect("/");
 
   const games = await prisma.game.findMany({
     where: { teamId: team.id },

@@ -34,7 +34,7 @@ export default async function DashboardPage() {
     },
   });
 
-  if (!team) redirect("/login");
+  if (!team) redirect("/");
 
   const activeSeason = team.seasons.find((s) => s.isActive) ?? team.seasons[0];
   const games = activeSeason?.games ?? [];

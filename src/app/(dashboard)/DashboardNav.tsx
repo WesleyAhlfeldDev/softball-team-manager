@@ -13,8 +13,10 @@ import {
   faXmark,
   faBaseballBatBall,
   faChartBar,
+  faRightFromBracket,
 } from "@fortawesome/free-solid-svg-icons";
 import { useState } from "react";
+import { logoutAction } from "@/server/actions/auth";
 
 const navItems = [
   { href: "/dashboard", label: "Dashboard", icon: faHouse },
@@ -113,6 +115,23 @@ export default function DashboardNav() {
             GO LIVE
           </Link>
 
+          {/* Log out (desktop) */}
+          <form action={logoutAction} className="hidden md:block">
+            <button
+              type="submit"
+              title="Log out"
+              className="flex items-center justify-center rounded-lg p-2 transition-colors hover:opacity-80"
+              style={{
+                background: "transparent",
+                border: "none",
+                color: "var(--color-text-muted)",
+                cursor: "pointer",
+              }}
+            >
+              <FontAwesomeIcon icon={faRightFromBracket} style={{ width: 16, height: 16 }} />
+            </button>
+          </form>
+
           {/* Mobile menu toggle */}
           <button
             className="flex items-center justify-center rounded-lg p-2 md:hidden"
@@ -182,6 +201,23 @@ export default function DashboardNav() {
               <FontAwesomeIcon icon={faBolt} style={{ width: 16, height: 16 }} />
               GO LIVE
             </Link>
+
+            <form action={logoutAction} className="mt-1">
+              <button
+                type="submit"
+                className="flex w-full items-center gap-3 rounded-lg px-4 py-3 text-sm font-semibold"
+                style={{
+                  background: "transparent",
+                  border: "none",
+                  color: "var(--color-text-secondary)",
+                  cursor: "pointer",
+                  fontFamily: "var(--font-body)",
+                }}
+              >
+                <FontAwesomeIcon icon={faRightFromBracket} style={{ width: 16, height: 16 }} />
+                Log out
+              </button>
+            </form>
 
           </div>
         </div>

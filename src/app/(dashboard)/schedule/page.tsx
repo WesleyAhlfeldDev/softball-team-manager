@@ -30,7 +30,7 @@ export default async function SchedulePage() {
     },
   });
 
-  if (!team) redirect("/login");
+  if (!team) redirect("/");
 
   const activeSeason = team.seasons[0];
   const games = activeSeason?.games ?? [];

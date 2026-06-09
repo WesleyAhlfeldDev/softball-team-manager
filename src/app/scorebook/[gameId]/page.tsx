@@ -20,7 +20,7 @@ export default async function ScoreboookPage({ params }: ScoreboookPageProps) {
     where: { userId },
     select: { id: true, name: true, teamColor: true, defaultLineup: true },
   });
-  if (!team) redirect("/login");
+  if (!team) redirect("/");
 
   const game = await prisma.game.findFirst({
     where: { id: gameId, teamId: team.id },

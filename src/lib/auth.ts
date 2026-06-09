@@ -1,18 +1,30 @@
 import NextAuth from "next-auth";
+import { PrismaAdapter } from "@auth/prisma-adapter";
 import Credentials from "next-auth/providers/credentials";
+import Google from "next-auth/providers/google";
+import Facebook from "next-auth/providers/facebook";
 import { prisma } from "@/lib/db";
 import bcrypt from "bcryptjs";
 import { z } from "zod";
 import { authConfig } from "./auth.config";
 
-const loginSchema = z.object({
+export const loginSchema = z.object({
   email: z.string().email(),
   password: z.string().min(1),
 });
 
 export const { handlers, signIn, signOut, auth } = NextAuth({
   ...authConfig,
+  adapter: PrismaAdapter(prisma),
   providers: [
+    Google({
+      // Link a Google login to an existing account with the same email.
+      // Safe here: closed, effectively single-user app.
+      allowDangerousEmailAccountLinking: true,
+    }),
+    Facebook({
+      allowDangerousEmailAccountLinking: true,
+    }),
     Credentials({
       name: "Credentials",
       credentials: {
@@ -26,7 +38,8 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
         const { email, password } = parsed.data;
 
         const user = await prisma.user.findUnique({ where: { email } });
-        if (!user) return null;
+        // OAuth-only accounts have no passwordHash — reject credentials login.
+        if (!user || !user.passwordHash) return null;
 
         const passwordMatch = await bcrypt.compare(password, user.passwordHash);
         if (!passwordMatch) return null;

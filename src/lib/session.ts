@@ -1,13 +1,23 @@
-import { prisma } from "@/lib/db";
+import { redirect } from "next/navigation";
+import { auth } from "@/lib/auth";
 
 export interface AppSession {
   user: { id: string; email: string; name: string };
 }
 
+/**
+ * Returns the authenticated user's session. Routes are already gated by
+ * middleware; this is the server-side guard for pages/actions. If there is no
+ * session (e.g. token expired), redirect to the login screen.
+ */
 export async function getSession(): Promise<AppSession> {
-  const user = await prisma.user.findFirst();
-  if (!user) throw new Error("No user found in database");
+  const session = await auth();
+  if (!session?.user?.id) redirect("/login");
   return {
-    user: { id: user.id, email: user.email, name: user.name ?? "" },
+    user: {
+      id: session.user.id,
+      email: session.user.email ?? "",
+      name: session.user.name ?? "",
+    },
   };
 }
